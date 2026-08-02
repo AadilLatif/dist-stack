@@ -34,6 +34,14 @@ is excluded from the server count. The monorepo also contains
 `apps/dist-dashboard`, the read-only visibility UI, and `docs/` — the Jupyter
 Book that includes this chapter and the architecture-assessment archive.)
 
+Each monorepo member now has its own dedicated page: the runner's tool surface,
+workflow format, and runstore lifecycle live in {doc}`runner`; the dist-kg
+server's tools, node-id schemes, and provenance semantics live in
+{doc}`kg-server` (distinct from {doc}`kg`, which documents the `dist_stack.kg`
+library); and the dashboard's views and read-only contract live in
+{doc}`dashboard`. For how the whole ecosystem is wired into an LLM client, see
+{doc}`mcp-wiring`.
+
 The three stores at the center — `models(model_id, version, stored_path)`,
 runstore `runs`/`artifacts`, and the KG `nodes`/`edges` — are the **shared
 contracts** every repo writes to or reads from. The model-registry contract is

@@ -5,12 +5,18 @@ parts:
   - caption: Getting Started
     chapters:
       - file: quickstart
+      - file: mcp-wiring
   - caption: The Four Stores
     chapters:
       - file: registry
       - file: manifest
       - file: runstore
       - file: kg
+  - caption: Orchestration & Apps
+    chapters:
+      - file: runner
+      - file: kg-server
+      - file: dashboard
   - caption: Conventions
     chapters:
       - file: conventions

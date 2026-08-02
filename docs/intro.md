@@ -68,6 +68,23 @@ The functional API is the public surface. Re-exports live at the top level:
 `from dist_stack import register, lookup, create_run, attach_artifact, upsert_node, ingest`.
 ```
 
+## The dist-stack monorepo
+
+This library is the shared core of a larger **monorepo** (`dist-stack`) that
+also ships the orchestration-plane MCP servers and the visibility UI, all as
+one `uv` workspace:
+
+| Member | Role | Docs |
+|---|---|---|
+| `packages/dist-stack-model-registry` | the shared library (this book) | this page + {doc}`quickstart` |
+| `packages/dist-workflow-runner` | MCP workflow orchestrator | {doc}`runner` |
+| `packages/dist-kg` | MCP knowledge-graph server | {doc}`kg-server` |
+| `apps/dist-dashboard` | read-only Streamlit visibility UI | {doc}`dashboard` |
+| `docs/` | this Jupyter Book + the architecture-assessment archive | {doc}`ecosystem`, {doc}`mcp-wiring` |
+
+The five domain repos (`grid-data-models`, `gdm-flow`, `erad`, `ditto`,
+`shift`) stay external; {doc}`ecosystem` shows how everything ties together.
+
 ## Install
 
 ```bash
