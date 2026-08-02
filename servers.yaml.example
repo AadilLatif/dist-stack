@@ -1,0 +1,31 @@
+# dist-workflow-runner configuration
+#
+# Copy to ./servers.yaml (or point WORKFLOW_RUNNER_CONFIG at it / pass
+# `--config` to `python -m workflow_runner`).
+#
+# Resolution order: --config > $WORKFLOW_RUNNER_CONFIG > ./servers.yaml
+
+# Optional; overrides DIST_STACK_RUNSTORE_DB for run_workflow persistence.
+runstore_db: ~/.cache/dist-stack/runstore.db
+
+# Optional; default is the packaged workflows/ dir shipped with this repo.
+workflow_dir: ./workflows
+
+servers:
+  gdm:
+    command: gdm-mcp
+    env:
+      DIST_STACK_MODEL_REGISTRY_DB: ~/.cache/dist-stack/registry.db
+  gdm_flow:
+    command: python
+    args: ["-m", "gdm_flow.mcp"]
+    cwd: ~/repos/gdm-flow
+  erad:
+    command: python
+    args: ["-m", "erad.mcp"]
+  ditto:
+    command: python
+    args: ["-m", "ditto.mcp.server"]
+  shift:
+    command: python
+    args: ["-m", "shift.mcp_server"]

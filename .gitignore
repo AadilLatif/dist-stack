@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+build/
+dist/
+.venv/
+venv/
+
+# Docs (Jupyter Book)
+docs/_build/
+docs/.jupyter_cache/
+
+# Local config / state
+servers.yaml
+*.db
+.streamlit/secrets.toml
+.DS_Store

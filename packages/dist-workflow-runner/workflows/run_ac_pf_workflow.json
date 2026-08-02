@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "workflow_id": "run_ac_pf_workflow",
+  "version": "1.0.0",
+  "name": "Run AC power flow",
+  "description": "Load a GDM system and run an AC power-flow study against it.",
+  "source_prompt": "gdm-flow://run_ac_pf@1",
+  "inputs": [
+    { "name": "system_path", "type": "string", "required": true }
+  ],
+  "steps": [
+    {
+      "id": "step_1",
+      "server": "gdm_flow",
+      "tool": "run_ac_pf",
+      "args": { "system_path": "${system_path}", "solver": "ac_pf", "include_details": true },
+      "capture": "pf_result",
+      "on_failure": "fail"
+    }
+  ],
+  "outputs": [
+    { "name": "pf_summary", "from": "pf_result" }
+  ]
+}

@@ -1,0 +1,20 @@
+# Jupyter Book configuration for the dist-stack documentation.
+# See https://jupyterbook.org/en/stable/configure/config.html
+
+# Book settings
+title: "Dist-Stack Model Registry & Provenance Library"
+author: "NREL Distribution Suites"
+only_build_toc_files: true
+
+# Execution settings
+execute:
+  execute_notebooks: "auto"   # run notebooks when deps are present, else skip
+  timeout: 120
+  allow_errors: false
+
+# Parsing settings
+parse:
+  myst_enable_extensions:
+    - colon_fence
+    - substitution
+    - dollarmath

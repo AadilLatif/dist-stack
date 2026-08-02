@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "workflow_id": "feasibility_study",
+  "version": "1.0.0",
+  "name": "Feasibility study",
+  "description": "Load a system, run AC PF, summarize.",
+  "source_prompt": "gdm-flow://run_ac_pf_workflow@1",
+  "inputs": [
+    { "name": "system_path", "type": "string", "required": true }
+  ],
+  "steps": [
+    {
+      "id": "step_1",
+      "server": "gdm",
+      "tool": "get_system_summary",
+      "args": { "system_path": "${system_path}" },
+      "capture": "system_summary",
+      "on_failure": "fail"
+    },
+    {
+      "id": "step_2",
+      "server": "gdm_flow",
+      "tool": "run_ac_pf",
+      "args": { "system_path": "${system_path}", "include_details": true },
+      "capture": "pf_result",
+      "on_failure": "fail"
+    }
+  ],
+  "outputs": [
+    { "name": "pf_summary", "from": "pf_result" }
+  ]
+}

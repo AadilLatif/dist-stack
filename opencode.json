@@ -1,0 +1,99 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "gdm": {
+      "type": "local",
+      "enabled": true,
+      "command": ["/tmp/gdmflow-venv/bin/python", "-m", "gdm.mcp.server"],
+      "environment": {
+        "DIST_STACK_MODEL_REGISTRY_DB": "/home/aadillatif/.cache/dist-stack/registry.db",
+        "DIST_STACK_RUNSTORE_DB": "/home/aadillatif/.cache/dist-stack/runstore.db",
+        "DIST_STACK_KG_DB": "/home/aadillatif/.cache/dist-stack/kg.db",
+        "PYTHONPATH": "/home/aadillatif/Documents/GitHub/grid-data-models/src"
+      }
+    },
+    "gdm-flow": {
+      "type": "local",
+      "enabled": true,
+      "command": ["/tmp/gdmflow-venv/bin/python", "-m", "gdm_flow.mcp.server"],
+      "environment": {
+        "DIST_STACK_MODEL_REGISTRY_DB": "/home/aadillatif/.cache/dist-stack/registry.db",
+        "DIST_STACK_RUNSTORE_DB": "/home/aadillatif/.cache/dist-stack/runstore.db",
+        "DIST_STACK_KG_DB": "/home/aadillatif/.cache/dist-stack/kg.db"
+      }
+    },
+    "erad": {
+      "type": "local",
+      "enabled": true,
+      "command": ["/home/aadillatif/Documents/GitHub/erad/.venv/bin/python", "-m", "erad.mcp"],
+      "environment": {
+        "DIST_STACK_MODEL_REGISTRY_DB": "/home/aadillatif/.cache/dist-stack/registry.db",
+        "DIST_STACK_RUNSTORE_DB": "/home/aadillatif/.cache/dist-stack/runstore.db",
+        "DIST_STACK_KG_DB": "/home/aadillatif/.cache/dist-stack/kg.db"
+      }
+    },
+    "ditto": {
+      "type": "local",
+      "enabled": true,
+      "command": ["/home/aadillatif/Documents/GitHub/ditto/.venv/bin/ditto_mcp"],
+      "environment": {
+        "DIST_STACK_MODEL_REGISTRY_DB": "/home/aadillatif/.cache/dist-stack/registry.db",
+        "DIST_STACK_RUNSTORE_DB": "/home/aadillatif/.cache/dist-stack/runstore.db",
+        "DIST_STACK_KG_DB": "/home/aadillatif/.cache/dist-stack/kg.db"
+      }
+    },
+    "shift": {
+      "type": "local",
+      "enabled": true,
+      "command": ["/tmp/opencode/shift-venv/bin/python", "-m", "shift.mcp_server.__main__"],
+      "environment": {
+        "DIST_STACK_MODEL_REGISTRY_DB": "/home/aadillatif/.cache/dist-stack/registry.db",
+        "DIST_STACK_RUNSTORE_DB": "/home/aadillatif/.cache/dist-stack/runstore.db",
+        "DIST_STACK_KG_DB": "/home/aadillatif/.cache/dist-stack/kg.db"
+      }
+    },
+    "dist-workflow-runner": {
+      "type": "local",
+      "enabled": true,
+      "command": ["/home/aadillatif/Documents/GitHub/dist-stack/.venv/bin/python", "-m", "workflow_runner.__main__"],
+      "environment": {
+        "DIST_STACK_MODEL_REGISTRY_DB": "/home/aadillatif/.cache/dist-stack/registry.db",
+        "DIST_STACK_RUNSTORE_DB": "/home/aadillatif/.cache/dist-stack/runstore.db",
+        "DIST_STACK_KG_DB": "/home/aadillatif/.cache/dist-stack/kg.db",
+        "WORKFLOW_RUNNER_CONFIG": "/home/aadillatif/Documents/GitHub/dist-stack/servers.yaml"
+      }
+    },
+    "dist-kg": {
+      "type": "local",
+      "enabled": true,
+      "command": ["/home/aadillatif/Documents/GitHub/dist-stack/.venv/bin/python", "-m", "kg_server.__main__"],
+      "environment": {
+        "DIST_STACK_MODEL_REGISTRY_DB": "/home/aadillatif/.cache/dist-stack/registry.db",
+        "DIST_STACK_RUNSTORE_DB": "/home/aadillatif/.cache/dist-stack/runstore.db",
+        "DIST_STACK_KG_DB": "/home/aadillatif/.cache/dist-stack/kg.db"
+      }
+    },
+    "sqlite": {
+      "type": "local",
+      "enabled": true,
+      "command": ["npx", "-y", "mcp-server-sqlite", "--db", "/home/aadillatif/.cache/dist-stack/runstore.db"]
+    },
+    "python": {
+      "type": "local",
+      "enabled": true,
+      "command": ["uvx", "python-mcp-server"]
+    },
+    "filesystem": {
+      "type": "local",
+      "enabled": true,
+      "command": [
+        "npx",
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "/home/aadillatif/.cache/dist-stack",
+        "/home/aadillatif/.cache/erad/hazard_models",
+        "/home/aadillatif/.cache/erad/distribution_models"
+      ]
+    }
+  }
+}

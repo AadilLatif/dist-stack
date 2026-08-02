@@ -1,0 +1,38 @@
+# Table of contents
+format: jb-book
+root: intro
+parts:
+  - caption: Getting Started
+    chapters:
+      - file: quickstart
+  - caption: The Four Stores
+    chapters:
+      - file: registry
+      - file: manifest
+      - file: runstore
+      - file: kg
+  - caption: Conventions
+    chapters:
+      - file: conventions
+      - file: ecosystem
+  - caption: Examples
+    chapters:
+      - file: examples/provenance_walkthrough
+  - caption: Reference
+    chapters:
+      - file: references
+  - caption: Architecture Assessment
+    chapters:
+      - file: architecture-assessment/01-repository-architecture-overview
+      - file: architecture-assessment/02-mcp-capability-audit
+      - file: architecture-assessment/03-distributionsystem-lifecycle-analysis
+      - file: architecture-assessment/04-capability-matrix
+      - file: architecture-assessment/05-gap-analysis
+      - file: architecture-assessment/06-recommended-roadmap
+      - file: architecture-assessment/07-immediate-refactoring-priorities
+      - file: architecture-assessment/08-future-ai-architecture-notes
+      - file: architecture-assessment/09-model-registry-spec
+      - file: architecture-assessment/10-mcp-sdk-unification-plan
+      - file: architecture-assessment/11-runstore-and-workflow-runner-spec
+      - file: architecture-assessment/12-knowledge-graph-spec
+      - file: architecture-assessment/13-monorepo-restructure-spec

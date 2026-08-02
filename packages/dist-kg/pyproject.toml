@@ -1,0 +1,32 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "dist-kg"
+version = "0.1.0"
+description = "Knowledge-graph MCP server for the NREL distribution suite: queries the dist_stack.kg store (nodes/edges/provenance/stats) and ingests runstore + registry + sidecar data."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "BSD-3-Clause" }
+authors = [{ name = "NREL Distribution Suite" }]
+dependencies = [
+    "mcp>=2.0,<3",
+    "dist-stack-model-registry",
+    "anyio",
+]
+
+[tool.uv.sources]
+dist-stack-model-registry = { workspace = true }
+
+[project.optional-dependencies]
+test = ["pytest"]
+
+[project.scripts]
+kg-server = "kg_server.__main__:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/kg_server"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

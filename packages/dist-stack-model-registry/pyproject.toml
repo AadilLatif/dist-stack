@@ -1,0 +1,19 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "dist-stack-model-registry"
+description = "Shared model registry library for the dist-stack (model_ref resolution for the NREL distribution suites)."
+readme = "README.md"
+requires-python = ">=3.10"
+dynamic = ["version"]
+
+[project.optional-dependencies]
+mcp = ["mcp>=2.0,<3"]
+
+[tool.hatch.version]
+path = "src/dist_stack/version.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/dist_stack"]
