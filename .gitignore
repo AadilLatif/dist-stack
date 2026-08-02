@@ -17,6 +17,6 @@ docs/.jupyter_cache/
 servers.yaml
 *.db
 .streamlit/secrets.toml
-.streamlit/run.log
+**/.streamlit/run.log
 .logs/
 .DS_Store
