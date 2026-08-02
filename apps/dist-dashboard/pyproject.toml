@@ -1,13 +1,16 @@
 [project]
 name = "dist-dashboard"
 version = "0.1.0"
-description = "Read-only visibility browser over the dist-stack ecosystem stores (runstore, KG, registry)."
+description = "Read-only visibility browser over the dist-stack ecosystem stores (runstore, KG, registry), plus an optional LLM chat assistant over the MCP servers."
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
     "dist-stack-model-registry",
+    "dist-workflow-runner",
     "streamlit>=1.49",
     "pandas>=2.0",
+    "openai>=1.30",
+    "anyio",
 ]
 
 [tool.uv]
@@ -15,6 +18,7 @@ package = false
 
 [tool.uv.sources]
 dist-stack-model-registry = { workspace = true }
+dist-workflow-runner = { workspace = true }
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

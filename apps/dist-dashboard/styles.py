@@ -241,6 +241,39 @@ code {
   border-radius: 5px;
   padding: 0.1em 0.4em;
 }
+
+/* assistant: tool-call trace rows --------------------------------------------- */
+.trace-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 2px;
+  font-size: 0.82rem;
+  border-bottom: 1px solid var(--line);
+}
+.trace-row:last-child { border-bottom: none; }
+.trace-row .server { color: var(--ink-2); font-weight: 600; }
+.trace-row .tool { font-family: 'IBM Plex Mono', ui-monospace, monospace; color: var(--ink); }
+.trace-row .duration { color: var(--muted); margin-left: auto; font-size: 0.75rem; }
+.badge--blocked { background: #FDF0E2; color: #B45309; border-color: #F4D3A8; }
+.dot--error { background: #B45309; }
+
+/* assistant: sidebar server-status chips --------------------------------------- */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 3px 11px;
+  margin: 2px 4px 2px 0;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+.chip .chip-status { color: var(--muted); font-weight: 500; }
 """
 
 

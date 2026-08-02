@@ -24,12 +24,15 @@ import data
 import styles
 from data import Config, DataError
 
+import assistant.view as assistant_view
+
 PAGES = [
     ("dashboard", "Dashboard"),
     ("runs", "Run History"),
     ("provenance", "Provenance"),
     ("graph", "Knowledge Graph"),
     ("registry", "Registry"),
+    ("assistant", "Assistant"),
 ]
 PAGE_IDS = [p for p, _ in PAGES]
 PAGE_LABELS = dict(PAGES)
@@ -865,6 +868,8 @@ def render_sidebar() -> str:
         "Read-only. All data is served from the three SQLite stores through "
         "the dist-stack APIs; this app writes nothing."
     )
+
+    assistant_view.render_sidebar_section()
     return nav
 
 
@@ -888,6 +893,7 @@ def main() -> None:
         "provenance": page_provenance,
         "graph": page_graph,
         "registry": page_registry,
+        "assistant": assistant_view.render_chat_view,
     }
     pages[nav](cfg)
 

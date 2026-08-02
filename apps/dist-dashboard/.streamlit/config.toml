@@ -7,3 +7,7 @@ textColor = "#221F1A"
 
 [server]
 headless = true
+# Localhost-only posture (spec 15 §E): the Assistant page can hold an LLM API
+# key and, with write tools enabled, acts as local admin. Never expose this
+# port on a network; there is no auth in v1.
+address = "127.0.0.1"
