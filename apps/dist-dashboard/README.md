@@ -61,18 +61,25 @@ ecosystem over the same MCP surface the runner uses.
 ### Run it
 
 ```bash
-# env for the LLM endpoint (or use .streamlit/secrets.toml — see below)
+# Optional: env for the LLM endpoint (or use the sidebar UI / secrets.toml)
 export LLM_API_KEY=sk-...
 # optional:
 # export LLM_BASE_URL=http://localhost:8000/v1   # vLLM / Ollama :11434/v1
-# export LLM_MODEL=gpt-4o-mini
+# export LLM_MODEL=qwen3.6:35b
 
 uv run --project apps/dist-dashboard streamlit run apps/dist-dashboard/app.py
 ```
 
-Then open the **Assistant** page. Copy
-`.streamlit/secrets.toml.example` to `.streamlit/secrets.toml` to keep the key
-out of your shell (env vars win over secrets).
+Then open the **Assistant** page. Configure the model three ways, in
+precedence order:
+
+1. **Sidebar UI (wins).** The **LLM** fields on the sidebar — Base URL, API
+   key, Model. For a local model (Ollama, vLLM): point Base URL at the local
+   endpoint (e.g. `http://localhost:11434/v1`), put any value in API key, and
+   set Model (e.g. `qwen3.6:35b`).
+2. **Env vars** (`LLM_BASE_URL` / `LLM_API_KEY` / `LLM_MODEL`).
+3. **Secrets** — copy `.streamlit/secrets.toml.example` to
+   `.streamlit/secrets.toml` (git-ignored) and fill the `[llm]` block.
 
 Env vars:
 

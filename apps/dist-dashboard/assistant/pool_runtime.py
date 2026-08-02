@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import asyncio
 import threading
+from functools import partial
 from typing import Any, Callable
 
 import anyio
@@ -150,7 +151,7 @@ class PoolRuntime:
 
     def check_all(self, per_server_timeout_s: int = 20) -> dict[str, str]:
         """Connect to every server (via the pool loop) and report statuses."""
-        return self.call(self._check_all, per_server_timeout_s=per_server_timeout_s)
+        return self.call(partial(self._check_all, per_server_timeout_s=per_server_timeout_s))
 
     async def _check_all(self, per_server_timeout_s: int) -> dict[str, str]:
         for name in self.names:

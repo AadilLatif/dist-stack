@@ -70,6 +70,21 @@ def _init_state() -> None:
         st.session_state["assistant_allow_write"] = False
     if "assistant_running" not in st.session_state:
         st.session_state["assistant_running"] = False
+    if "assistant_llm_base_url" not in st.session_state:
+        st.session_state["assistant_llm_base_url"] = ""
+    if "assistant_llm_api_key" not in st.session_state:
+        st.session_state["assistant_llm_api_key"] = ""
+    if "assistant_llm_model" not in st.session_state:
+        st.session_state["assistant_llm_model"] = ""
+
+
+def _ui_llm_config() -> dict:
+    """Sidebar LLM overrides (empty strings mean "no UI override")."""
+    return {
+        "base_url": st.session_state.get("assistant_llm_base_url", ""),
+        "api_key": st.session_state.get("assistant_llm_api_key", ""),
+        "model": st.session_state.get("assistant_llm_model", ""),
+    }
 
 
 def _cap_history(messages: list[dict[str, Any]]) -> None:
@@ -362,7 +377,7 @@ def _test_connections() -> None:
         except Exception as exc:  # pragma: no cover
             st.session_state["assistant_server_status"] = {n: "error" for n in runtime.names}
             st.sidebar.error(f"Test connections failed: {exc}")
-    st.rerun()
+    # No st.rerun(): Streamlit already reruns the script after a callback.
 
 
 def _restart_runtime() -> None:
@@ -380,7 +395,7 @@ def _restart_runtime() -> None:
         "assistant_servers_yaml",
     ):
         st.session_state.pop(key, None)
-    st.rerun()
+    # No st.rerun(): Streamlit already reruns the script after a callback.
 
 
 def render_sidebar_section() -> None:
@@ -423,11 +438,36 @@ def render_sidebar_section() -> None:
         st.sidebar.warning("Write tools enabled — local admin power.")
 
     try:
-        cfg = load_llm_config(_secrets())
-        if cfg.api_key:
+        cfg = load_llm_config(_secrets(), _ui_llm_config())
+        st.sidebar.markdown("**LLM**")
+        st.sidebar.text_input(
+            "Base URL",
+            key="assistant_llm_base_url",
+            placeholder="https://api.openai.com/v1 · Ollama: http://localhost:11434/v1",
+            help="OpenAI-compatible endpoint. Set in the UI, or via "
+            "LLM_BASE_URL / the [llm] secrets block (UI wins).",
+        )
+        st.sidebar.text_input(
+            "API key",
+            key="assistant_llm_api_key",
+            type="password",
+            placeholder="sk-… · Ollama: any value",
+            help="UI value wins over LLM_API_KEY / the [llm] secrets block. "
+            "Ollama and other local endpoints accept any placeholder.",
+        )
+        st.sidebar.text_input(
+            "Model",
+            key="assistant_llm_model",
+            placeholder="gpt-4o-mini · qwen3.6:35b",
+            help="UI value wins over LLM_MODEL / the [llm] secrets block.",
+        )
+        if cfg.configured:
             st.sidebar.caption(f"Model: {cfg.model}")
         else:
-            st.sidebar.caption("LLM not configured")
+            st.sidebar.caption(
+                "LLM not configured — set the fields above or the "
+                "[llm] secrets block."
+            )
     except Exception:  # pragma: no cover
         st.sidebar.caption("LLM not configured")
 
@@ -462,7 +502,7 @@ def render_chat_view(_cfg: Any = None) -> None:
             "this as local admin power."
         )
 
-    llm_cfg = load_llm_config(_secrets())
+    llm_cfg = load_llm_config(_secrets(), _ui_llm_config())
     runtime, path = _get_runtime()
     if runtime is not None:
         st.session_state["assistant_server_status"] = runtime.statuses()
@@ -471,13 +511,16 @@ def render_chat_view(_cfg: Any = None) -> None:
         [m for m in st.session_state.get("assistant_messages", []) if m["role"] != "system"]
     ) == 0
 
-    if not llm_cfg.api_key:
+    if not llm_cfg.configured:
         styles.empty_state(
             "LLM not configured",
-            "Set <code>LLM_API_KEY</code> (or the <code>[llm]</code> block in "
-            "<code>.streamlit/secrets.toml</code>) to start chatting. The "
-            "assistant talks to any OpenAI-compatible endpoint via "
-            "<code>LLM_BASE_URL</code>.",
+            "Set the <b>LLM</b> fields in the sidebar, or the "
+            "<code>LLM_API_KEY</code> env var / <code>[llm]</code> block in "
+            "<code>.streamlit/secrets.toml</code>. For a local model "
+            "(Ollama, vLLM), point <b>Base URL</b> at the local endpoint "
+            "(e.g. <code>http://localhost:11434/v1</code>), put any value in "
+            "<b>API key</b>, and set <b>Model</b> (e.g. "
+            "<code>qwen3.6:35b</code>).",
         )
         _render_transcript()
         return

@@ -36,6 +36,12 @@ class LLMConfig:
     model: str
     timeout_s: float = 120.0
     max_tokens: int = 2048
+    configured: bool = False
+
+    @property
+    def local(self) -> bool:
+        """True for local/Ollama-style endpoints that need no real key."""
+        return "localhost" in self.base_url or "127.0.0.1" in self.base_url
 
 
 @dataclass(frozen=True)
@@ -60,9 +66,12 @@ class LLMClient:
 
     def __init__(self, config: LLMConfig) -> None:
         self.config = config
+        # The OpenAI SDK rejects an empty api_key; local endpoints (Ollama,
+        # vLLM) don't need one, so substitute a placeholder.
+        api_key = config.api_key or ("local" if config.local else "")
         self._client = AsyncOpenAI(
             base_url=config.base_url,
-            api_key=config.api_key,
+            api_key=api_key,
             timeout=config.timeout_s,
             max_retries=0,  # the agent loop is the retry layer
         )
@@ -119,13 +128,16 @@ class LLMClient:
         return LLMResult(text=message.content or "", tool_calls=tuple(tool_calls))
 
 
-def load_llm_config(secrets: dict | None = None) -> LLMConfig:
+def load_llm_config(secrets: dict | None = None, ui: dict | None = None) -> LLMConfig:
     """Resolve the LLM configuration.
 
-    Resolution order: env vars (``LLM_BASE_URL`` / ``LLM_API_KEY`` /
-    ``LLM_MODEL``) win, then ``secrets["llm"]`` (e.g. ``st.secrets``), then
-    built-in defaults for ``base_url``/``model``. ``api_key`` may stay empty —
-    callers treat that as "LLM not configured".
+    Resolution order: the ``ui`` override (sidebar fields, e.g.
+    ``{"base_url":…, "api_key":…, "model":…}``) wins, then env vars
+    (``LLM_BASE_URL`` / ``LLM_API_KEY`` / ``LLM_MODEL``), then
+    ``secrets["llm"]`` (e.g. ``st.secrets``), then built-in defaults for
+    ``base_url``/``model``. ``api_key`` may stay empty — callers treat that as
+    "LLM not configured" unless the endpoint is local (Ollama etc.), where any
+    placeholder key works.
     """
     base_url = os.environ.get("LLM_BASE_URL")
     api_key = os.environ.get("LLM_API_KEY")
@@ -145,8 +157,18 @@ def load_llm_config(secrets: dict | None = None) -> LLMConfig:
         api_key = api_key or llm.get("api_key")
         model = model or llm.get("model")
 
+    if ui is not None:
+        base_url = (ui.get("base_url") or "").strip() or base_url
+        api_key = (ui.get("api_key") or "").strip() or api_key
+        model = (ui.get("model") or "").strip() or model
+
+    base_url = base_url or DEFAULT_BASE_URL
+    model = model or DEFAULT_MODEL
+    api_key = (api_key or "").strip()
+    configured = bool(api_key) or "localhost" in base_url or "127.0.0.1" in base_url
     return LLMConfig(
-        base_url=base_url or DEFAULT_BASE_URL,
-        api_key=api_key or "",
-        model=model or DEFAULT_MODEL,
+        base_url=base_url,
+        api_key=api_key,
+        model=model,
+        configured=configured,
     )
