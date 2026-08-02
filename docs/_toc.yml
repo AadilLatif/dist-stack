@@ -1,33 +1,34 @@
 # Table of contents
 format: jb-book
-root: intro
+root: overview
 parts:
-  - caption: Getting Started
+  - caption: Overview
     chapters:
+      - file: architecture
       - file: quickstart
-      - file: mcp-wiring
-  - caption: The Four Stores
+  - caption: Core Library
     chapters:
+      - file: library
       - file: registry
       - file: manifest
       - file: runstore
       - file: kg
+      - file: conventions
   - caption: Orchestration & Apps
     chapters:
       - file: runner
       - file: kg-server
       - file: dashboard
-  - caption: Conventions
+  - caption: Usage & Ecosystem
     chapters:
-      - file: conventions
+      - file: usage-scenarios
       - file: ecosystem
-  - caption: Examples
-    chapters:
-      - file: examples/provenance_walkthrough
-  - caption: Reference
+      - file: mcp-wiring
+  - caption: Reference & Examples
     chapters:
       - file: references
-  - caption: Architecture Assessment
+      - file: examples/provenance_walkthrough
+  - caption: Architecture Assessment (spec archive)
     chapters:
       - file: architecture-assessment/01-repository-architecture-overview
       - file: architecture-assessment/02-mcp-capability-audit

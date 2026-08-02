@@ -1,18 +1,29 @@
 # Quickstart
 
-A five-minute tour: **register a model → write a provenance sidecar → create a
-run and attach an artifact → ingest everything into the knowledge graph → query
-the provenance chain.** Every snippet uses temporary file paths so it runs
-anywhere, exactly as in the walkthrough notebook
-({doc}`examples/provenance_walkthrough`).
+A five-minute tour. Two tracks — pick the one that matches what you want to do.
 
-```{warning}
-The examples below pass explicit `*_db=` paths for clarity. In production you
-would instead set the environment variables documented in {doc}`intro` and omit
-the arguments.
+```{note}
+**Choose your track**
+
+- **Track A — use the library in code:** register a model → write a provenance
+  sidecar → create a run and attach an artifact → ingest everything into the
+  knowledge graph → query the provenance chain. Every snippet uses temporary
+  file paths so it runs anywhere, exactly as in the walkthrough notebook
+  ({doc}`examples/provenance_walkthrough`).
+- **Track B — run the orchestration stack:** sync the workspace, configure the
+  runner, start the KG server and ingest, run a packaged workflow, and open
+  the dashboard.
 ```
 
-## 0. Imports
+```{warning}
+The Track A examples pass explicit `*_db=` paths for clarity. In production you
+would instead set the environment variables documented in {doc}`library` and
+omit the arguments.
+```
+
+## Track A — use the library in code
+
+### A1. Imports
 
 ```python
 import tempfile
@@ -31,7 +42,7 @@ run_db = work / "runstore.sqlite"
 kg_db = work / "kg.sqlite"
 ```
 
-## 1. Register a model
+### A2. Register a model
 
 ```python
 model_file = work / "model.json"
@@ -55,7 +66,7 @@ record.version          # 1
 record.stored_path      # absolute path, resolved against the DB parent
 ```
 
-## 2. Write a provenance sidecar
+### A3. Write a provenance sidecar
 
 A manifest is a frozen JSON file at `{artifact_path}{MANIFEST_SUFFIX}`
 (`.manifest.json`). It records what produced the artifact, from what, and when.
@@ -75,7 +86,7 @@ write_manifest(
 )
 ```
 
-## 3. Create a run and attach the artifact
+### A4. Create a run and attach the artifact
 
 Runs are **not** upserts — `create_run` raises `RunExistsError` if the
 `run_id` already exists. `attach_artifact` reads the sidecar you just wrote and
@@ -97,7 +108,7 @@ art.artifact_id            # "art_<hex12>"
 art.model_id               # "my-model" (from the sidecar)
 ```
 
-## 4. Ingest into the knowledge graph
+### A5. Ingest into the knowledge graph
 
 `dist_stack.kg.ingest` reads the registry, the runstore, and the sidecars, then
 writes `model:`/`run:`/`artifact:` nodes and `has_artifact` / `generated_by` /
@@ -122,7 +133,7 @@ report2.nodes_created      # 0
 report2.edges_created      # 0
 ```
 
-## 5. Query the provenance chain
+### A6. Query the provenance chain
 
 Walk `up` (what produced a node) or `down` (what a node produced) as a list of
 lists grouped by depth:
@@ -143,6 +154,26 @@ chain = get_provenance_chain(
 `('derived_from', 'has_artifact')` on outgoing edges. Traversal is cycle-safe
 and depth-capped.
 ```
+
+## Track B — run the orchestration stack
+
+1. **Sync the workspace.** From the monorepo root, `uv sync` installs the
+   library and the orchestration apps into one `.venv`.
+2. **Configure the runner.** Copy `servers.yaml.example` to `servers.yaml` and
+   edit the server commands for your machine (see {doc}`runner`).
+3. **Start the KG server and ingest.** Export `DIST_STACK_KG_DB`, run
+   `uv run --project packages/dist-kg python -m kg_server`, and build the graph
+   from the runstore + registry + sidecars with its `ingest` tool (see
+   {doc}`kg-server`).
+4. **Run the packaged workflow.** Call the runner's `run_workflow` with the
+   shipped `run_ac_pf_workflow` template (or `feasibility_study`), then inspect
+   the result with `get_run(<run_id>)`.
+5. **Open the dashboard.** `uv run --project apps/dist-dashboard streamlit run
+   apps/dist-dashboard/app.py` — the read-only browser over the runstore, KG,
+   and registry (see {doc}`dashboard`).
+
+To drive the whole stack from an LLM client instead of the terminal, wire it up
+per {doc}`mcp-wiring`.
 
 ## What's next
 

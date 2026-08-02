@@ -1,4 +1,13 @@
-# Knowledge Graph Server (dist-kg)
+# KG Server (dist-kg)
+
+**Backing library:** {doc}`kg` — the `dist_stack.kg` store this server queries.
+
+```{note}
+**When to use this.** The server is for **agents** — it exposes the knowledge
+graph as MCP tools. If you are a **human** who wants to browse what happened,
+use the {doc}`dashboard` instead. For the *library* the server reads, see
+{doc}`kg`.
+```
 
 `packages/dist-kg` (import name `kg_server`, dist name `dist-kg`) is the
 **knowledge-graph MCP server** of the distribution suite. It exposes the
@@ -58,6 +67,7 @@ The four provenance relations between these nodes are `has_artifact`,
 | Resource | `kg://graph/{node_id}` | Templated; the node plus its 1-hop neighbors (in and out) with edge metadata. |
 | Prompt | `trace_provenance(subject)` | Instructions for answering provenance questions: resolve the subject, read its neighborhood, walk chains up/down, and cite concrete node ids and relations. |
 
+(provenance-semantics)=
 ## Provenance semantics
 
 `get_provenance_chain(node_id, direction, max_depth)` walks the graph one
@@ -73,6 +83,7 @@ level a list of node records (trailing empty depths are trimmed):
 return the 1-hop neighborhood in both directions; use the chain tool when you
 need the full ancestry or descendancy beyond one hop.
 
+(component-ingestion)=
 ## Component ingestion
 
 `ingest_components` resolves the distribution system (exactly one of

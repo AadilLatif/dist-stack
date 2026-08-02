@@ -2,9 +2,10 @@
 # See https://jupyterbook.org/en/stable/configure/config.html
 
 # Book settings
-title: "Dist-Stack Model Registry & Provenance Library"
+title: "Dist-Stack — Model Registry & Provenance for the Distribution Suite"
 author: "NREL Distribution Suites"
 only_build_toc_files: true
+root: overview
 
 # Execution settings
 execute:

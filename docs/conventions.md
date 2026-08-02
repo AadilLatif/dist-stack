@@ -1,4 +1,11 @@
-# Ecosystem MCP Server Conventions
+# MCP Server Conventions (contributors)
+
+```{note}
+**Who this is for:** contributors **building or extending** MCP servers in the
+distribution suite. You do **not** need this page to *use* dist-stack — the
+library, the servers, and the dashboard all work without it. See {doc}`library`
+to get started.
+```
 
 > Reproduced faithfully from `src/dist_stack/mcp/CONVENTIONS.md`, the canonical
 > pattern for every MCP server in the distribution suite. Design spec:

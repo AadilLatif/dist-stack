@@ -1,4 +1,12 @@
-# MCP Wiring Guide — the dist-stack ecosystem in your LLM client
+# LLM Client Wiring (opencode)
+
+```{note}
+**Operational companion to {doc}`ecosystem`.** This page is the *how to
+configure your client* guide — the exact launcher paths, env vars, and
+restart steps for hooking the ecosystem into opencode. {doc}`ecosystem` is the
+map of *what exists and how data flows*; {doc}`usage-scenarios` has the
+intent-first journeys.
+```
 
 This monorepo (`dist-stack`) is the wiring point for the whole
 distribution-suite ecosystem: it consolidates the former `gdm-stack`,
@@ -87,17 +95,9 @@ What happens, step by step:
    which inputs ("tell me what every artifact derived from").
 6. **sqlite + filesystem** — see §3 for inspecting the persisted results.
 
-Other ready-made prompts:
-
-- "Convert this OpenDSS model to CIME and tell me the component counts."
-  → **ditto** (`read_opendss_model` → `convert_model` → `write_cim`).
-- "Run the packaged `run_ac_pf` workflow and show me the run record."
-  → **dist-workflow-runner** (`list_workflows`, `run_workflow`, `get_run`).
-- "Query the graph: what nodes are connected to this one and what's its
-  provenance chain?" → **dist-kg** (`get_neighbors`, `get_provenance_chain`).
-- "Build a synthetic parcel-derived network for this area and route a mesh."
-  → **shift** (`fetch_parcels`, `cluster_parcels`, `build_graph_from_groups`,
-  `create_mesh_network`).
+For other ready-made task shapes — model conversion with ditto, the packaged
+workflows, graph queries, or mesh routing with shift — follow the journeys in
+{doc}`usage-scenarios`.
 
 ---
 

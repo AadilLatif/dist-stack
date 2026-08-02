@@ -1,7 +1,4 @@
-# Dist-Stack: Model Registry & Provenance Library
-
-```{versionadded} 0.1.0
-```
+# Core Library at a Glance (dist_stack)
 
 `dist-stack-model-registry` (import name `dist_stack`, version `0.1.0`) is the
 **shared library** behind the NREL distribution suites: one implementation of
@@ -18,12 +15,12 @@ in the ecosystem repos and import tiny helpers from `dist_stack.mcp`.
 
 ## The four stores
 
-| Module | Purpose | Primary identity |
-|---|---|---|
-| `dist_stack.registry` | Versioned **model registry** (`register` / `lookup` / `delete` / `list_models`) | `(model_id, version)` |
-| `dist_stack.manifest` | **Provenance sidecar** reader/writer next to every artifact | `{artifact_path}.manifest.json` |
-| `dist_stack.runstore` | **Run-state + artifact store** (`create_run` / `attach_artifact`) | `run:<run_id>`, `art_<hex12>` |
-| `dist_stack.kg` | **Knowledge graph** store + ingester (`upsert_node` / `get_provenance_chain` / `ingest`) | `run:`/`artifact:`/`model:` node ids |
+| Module | Purpose | Primary identity | See page |
+|---|---|---|---|
+| `dist_stack.registry` | Versioned **model registry** (`register` / `lookup` / `delete` / `list_models`) | `(model_id, version)` | {doc}`registry` |
+| `dist_stack.manifest` | **Provenance sidecar** reader/writer next to every artifact | `{artifact_path}.manifest.json` | {doc}`manifest` |
+| `dist_stack.runstore` | **Run-state + artifact store** (`create_run` / `attach_artifact`) | `run:<run_id>`, `art_<hex12>` | {doc}`runstore` |
+| `dist_stack.kg` | **Knowledge graph** store + ingester (`upsert_node` / `get_provenance_chain` / `ingest`) | `run:`/`artifact:`/`model:` node ids | {doc}`kg` |
 
 `dist_stack.mcp` is not a store — it is the **conventions home** for the
 ecosystem MCP servers (see {doc}`conventions`) plus two JSON-serialization
@@ -68,23 +65,6 @@ The functional API is the public surface. Re-exports live at the top level:
 `from dist_stack import register, lookup, create_run, attach_artifact, upsert_node, ingest`.
 ```
 
-## The dist-stack monorepo
-
-This library is the shared core of a larger **monorepo** (`dist-stack`) that
-also ships the orchestration-plane MCP servers and the visibility UI, all as
-one `uv` workspace:
-
-| Member | Role | Docs |
-|---|---|---|
-| `packages/dist-stack-model-registry` | the shared library (this book) | this page + {doc}`quickstart` |
-| `packages/dist-workflow-runner` | MCP workflow orchestrator | {doc}`runner` |
-| `packages/dist-kg` | MCP knowledge-graph server | {doc}`kg-server` |
-| `apps/dist-dashboard` | read-only Streamlit visibility UI | {doc}`dashboard` |
-| `docs/` | this Jupyter Book + the architecture-assessment archive | {doc}`ecosystem`, {doc}`mcp-wiring` |
-
-The five domain repos (`grid-data-models`, `gdm-flow`, `erad`, `ditto`,
-`shift`) stay external; {doc}`ecosystem` shows how everything ties together.
-
 ## Install
 
 ```bash
@@ -96,7 +76,12 @@ uv run python -c "import dist_stack; print(dist_stack.__version__)"
 pip install "dist-stack-model-registry>=0.1,<1"
 ```
 
-See {doc}`quickstart` for the five-minute tour, {doc}`ecosystem` for how the
-shared contracts tie the ecosystem repos together in practice, and
-{doc}`references` for the full API surface and the design specs
-(`docs/architecture-assessment/` 09–12).
+## What's next
+
+- {doc}`quickstart` — the five-minute tour (Track A: library in code;
+  Track B: the orchestration stack).
+- {doc}`registry` / {doc}`manifest` / {doc}`runstore` / {doc}`kg` — the four
+  stores in detail.
+- {doc}`runner` / {doc}`kg-server` / {doc}`dashboard` — the orchestration apps
+  built on top of this library.
+- {doc}`overview` — where the library sits in the monorepo.

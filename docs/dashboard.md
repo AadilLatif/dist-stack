@@ -1,4 +1,7 @@
-# Visibility Dashboard (dist-dashboard)
+# Dashboard App (dist-dashboard)
+
+**Backing libraries:** {doc}`runstore`, {doc}`kg`, {doc}`registry` — the three
+stores this app reads through the dist-stack Python APIs.
 
 `apps/dist-dashboard` is the **human-review tier** of the dist-stack
 monorepo: a read-only [Streamlit](https://streamlit.io) browser over the three
@@ -54,7 +57,7 @@ Each store's DB path resolves in this order
 |---|---|---|
 | Runstore | `DIST_STACK_RUNSTORE_DB` | `~/.cache/dist-stack/runstore.db` |
 | Knowledge graph | `DIST_STACK_KG_DB` | `~/.cache/dist-stack/kg.db` |
-| Model registry | `DIST_STACK_MODEL_REGISTRY_DB` | `~/.cache/dist-stack/model_registry.db` |
+| Model registry | `DIST_STACK_MODEL_REGISTRY_DB` | `~/.cache/dist-stack/registry.db` |
 
 The sidebar Settings panel lets you override any of the three paths at
 runtime; an override wins over the environment variable for that session. A
@@ -84,3 +87,9 @@ cd apps/dist-dashboard && uv run --project . python -m unittest discover -s test
 See {doc}`runner` and {doc}`kg-server` for the MCP servers that populate the
 stores this dashboard reads, and {doc}`mcp-wiring` for the full ecosystem
 wiring.
+
+## Related
+
+- {doc}`usage-scenarios` — Journey 2 shows how to see and trace results (a
+  human-facing alternative to the graph queries).
+- {doc}`runstore` / {doc}`kg` / {doc}`registry` — the backing stores.

@@ -1,4 +1,10 @@
-# Run Store (`dist_stack.runstore`)
+# Runstore Library (dist_stack.runstore)
+
+**What this is.** The **run-state + artifact store**: every tool run gets a
+`runs` row, and every artifact it produces gets an `artifacts` row indexed by
+the manifest sidecar.
+**When to use it.** When code needs to record that a tool ran, attach the
+artifacts it produced, and query that history later.
 
 The runstore is the **run-state + artifact store**: every tool run gets a
 `runs` row, and every artifact it produces gets an `artifacts` row indexed by
@@ -173,3 +179,12 @@ arts = list_artifacts("sim_000000000001", runstore_db=run_db)
   delete), and `list_runs(include_deleted=True)` shows them.
 - The runstore is the primary ingestion source for the knowledge graph
   ingester — see {doc}`kg`.
+
+## Related
+
+- {doc}`library` — the four stores at a glance.
+- {doc}`manifest` — the sidecars `attach_artifact` reads.
+- {doc}`kg` — the ingester that rebuilds the graph from this store.
+- {doc}`runner` — the workflow runner drives this store's lifecycle
+  (`create_run` → steps → `update_run` → artifact → `attach_artifact`).
+- {doc}`dashboard` — the run-history view reads this store.

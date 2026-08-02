@@ -1,4 +1,9 @@
-# Model Registry (`dist_stack.registry`)
+# Registry Library (dist_stack.registry)
+
+**What this is.** A versioned SQLite store keyed on `(model_id, version)` —
+the single implementation of the `model_ref` resolution contract.
+**When to use it.** When code needs to register, look up, or delete model
+versions and resolve a `model_ref` to a stored path.
 
 The registry is a versioned SQLite store keyed on **`(model_id, version)`**.
 It is the single implementation of the `model_ref` resolution contract that
@@ -166,3 +171,11 @@ record = lookup("my-model")   # picks up the env var on this call
 `PRAGMA user_version` is the schema-version authority. Legacy 3-column
 `models` tables are migrated in place (additive `ALTER TABLE` + unique index)
 with rows preserved — see `dist_stack.registry.schema.migrate`.
+
+## Related
+
+- {doc}`library` — the four stores at a glance.
+- {doc}`manifest` — the provenance sidecar that names the artifact a registry
+  entry points at.
+- {doc}`ecosystem` — how the registry contract is shared across the domain
+  servers.

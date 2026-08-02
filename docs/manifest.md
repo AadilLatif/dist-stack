@@ -1,4 +1,9 @@
-# Provenance Manifests (`dist_stack.manifest`)
+# Manifest Library (dist_stack.manifest)
+
+**What this is.** An immutable JSON **sidecar** written next to every artifact,
+recording what produced it, from what, and when.
+**When to use it.** When code needs to record provenance at the file level —
+the authority the KG ingester reads for `derived_from` and config.
 
 A **manifest** is an immutable (frozen) JSON **sidecar** written next to every
 artifact, recording what produced it, from what, and when. It is the authority
@@ -122,3 +127,11 @@ When `runstore.attach_artifact` is called with **no** existing sidecar, it
 writes one with ``derived_from=[run_id]`` — the "attach fallback" that makes
 the run the recorded parent.
 ```
+
+## Related
+
+- {doc}`library` — the four stores at a glance.
+- {doc}`runstore` — `attach_artifact` consumes these sidecars.
+- {doc}`kg` — the ingester reads `derived_from` from these sidecars.
+- {doc}`ecosystem` — the provenance spine that ties sidecars, runs, and the KG
+  together.

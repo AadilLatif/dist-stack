@@ -1,4 +1,7 @@
-# Workflow Runner (dist-workflow-runner)
+# Workflow Runner Server (dist-workflow-runner)
+
+**Backing library:** {doc}`runstore` — the store this server's lifecycle
+(`create_run` → steps → `update_run` → artifact → `attach_artifact`) writes to.
 
 `packages/dist-workflow-runner` (import name `workflow_runner`, dist name
 `dist-workflow-runner`) is the **workflow-orchestration MCP server** of the
@@ -151,6 +154,7 @@ environment, that is where the three shared database locations
 `DIST_STACK_MODEL_REGISTRY_DB`, `DIST_STACK_RUNSTORE_DB`, and
 `DIST_STACK_KG_DB` reach the domain servers.
 
+(the-runstore-lifecycle)=
 ## The runstore lifecycle
 
 `run_workflow` executes the steps of a template in order against the live
@@ -216,5 +220,11 @@ uv run --project packages/dist-workflow-runner workflow-runner --config servers.
 ```
 
 See {doc}`mcp-wiring` for how the runner is wired into an LLM client alongside
-the rest of the ecosystem, and {doc}`ecosystem` for the end-to-end workflow
-scenario that exercises it.
+the rest of the ecosystem, and {doc}`usage-scenarios` for the reusable-workflow
+journey that exercises it.
+
+## Related
+
+- {doc}`runstore` — the runstore library this server drives.
+- {doc}`usage-scenarios` — Journey 3 runs a reusable workflow end to end.
+- {doc}`mcp-wiring` — the launcher config for this server.

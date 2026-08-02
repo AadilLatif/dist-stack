@@ -1,4 +1,10 @@
-# Knowledge Graph (`dist_stack.kg`)
+# KG Library (dist_stack.kg)
+
+```{note}
+**This page is the LIBRARY** — the `dist_stack.kg` SQLite store and ingester.
+If you are looking for the MCP server that exposes the graph to an agent, see
+{doc}`kg-server`.
+```
 
 The knowledge graph is a stdlib-only SQLite graph store (nodes + edges +
 recursive CTEs) that surfaces cross-artifact provenance: which run produced
@@ -239,3 +245,10 @@ class IngestReport:
 
 `DIST_STACK_KG_DB` — read lazily per call; `kg_db` argument wins. Raising
 `KGUnavailableError` when unset.
+
+## Related
+
+- {doc}`library` — the four stores at a glance.
+- {doc}`kg-server` — the MCP server that queries this store.
+- {doc}`manifest` and {doc}`runstore` — the sources the ingester reads.
+- {doc}`ecosystem` — the provenance spine that feeds this graph.
