@@ -15,8 +15,10 @@ expressions or nested interpolation in v1.
 
 from __future__ import annotations
 
+import asyncio
 import json
 import re
+from collections.abc import Callable
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -199,6 +201,59 @@ def _persist_execution(
 # ---------------------------------------------------------------------------
 
 
+def _build_execution(
+    workflow: WorkflowSpec,
+    inputs_resolved: dict[str, Any],
+    rid: str,
+    execution_status: str,
+    started_at: str,
+    steps: list[StepResult],
+    env: dict[str, Any],
+) -> WorkflowExecution:
+    """Assemble a :class:`WorkflowExecution` from the accumulated step results."""
+    outputs = _build_outputs(workflow, env)
+    return WorkflowExecution(
+        workflow_id=workflow.workflow_id,
+        workflow_version=workflow.version,
+        source_prompt=workflow.source_prompt,
+        inputs_resolved=inputs_resolved,
+        run_id=rid,
+        status=execution_status,
+        started_at_utc=started_at,
+        finished_at_utc=_now(),
+        steps=steps,
+        outputs=outputs,
+    )
+
+
+def _finalize_runstore(
+    rid: str,
+    execution: WorkflowExecution,
+    payload: dict[str, Any],
+    runstore_db: str,
+    *,
+    tool_version: str | None = None,
+) -> None:
+    """Write the terminal runstore state: update_run + artifact + manifest + attach.
+
+    A ``cancelled`` execution is recorded with ``message="cancelled by user"``;
+    any other terminal state uses the failure-message text (``None`` when clean).
+    """
+    if execution.status == "cancelled":
+        message = "cancelled by user"
+    else:
+        message = _failure_message(execution)
+    update_run(
+        rid,
+        status=execution.status,
+        message=message,
+        payload={**payload, "status": execution.status},
+        runstore_db=runstore_db,
+    )
+    artifact_path = _persist_execution(execution, runstore_db, tool_version=tool_version)
+    attach_artifact(rid, artifact_path, runstore_db=runstore_db)
+
+
 async def execute_workflow(
     workflow: WorkflowSpec,
     inputs: dict[str, Any],
@@ -207,12 +262,34 @@ async def execute_workflow(
     runstore_db: str | None = None,
     run_id: str | None = None,
     tool_version: str | None = None,
+    on_step: Callable[[StepResult], None] | None = None,
+    cancel_event: asyncio.Event | None = None,
 ) -> WorkflowExecution:
     """Execute ``workflow`` sequentially against ``pool``.
 
     ``runstore_db``: when provided, the full runstore lifecycle (create_run →
     update_run → artifact + manifest → attach_artifact) is driven; the returned
     :class:`WorkflowExecution` carries the persisted ``run_id``.
+
+    ``on_step``: optional synchronous callback invoked once per step, immediately
+    after the :class:`StepResult` is appended, for every status the executor can
+    produce (``succeeded``/``failed``/``skipped``). Default ``None`` — existing
+    callers are completely unaffected.
+
+    ``cancel_event``: optional cancellation flag. It is checked at each step
+    boundary, before a step starts. When set, every remaining step is recorded as
+    ``skipped`` with ``error="run cancelled by user"`` and the execution status
+    becomes ``cancelled``. Cancelled takes precedence over both ``succeeded`` and
+    ``failed`` when the flag is set (a prior step failure does not downgrade a
+    user cancellation). Cancellation is best-effort: an in-flight tool call is
+    NOT interrupted — the flag is honored at the next step boundary. A cancelled
+    run is still finalized to the runstore (``update_run(status="cancelled")`` +
+    execution artifact), so it is a recorded partial execution, not a dangling
+    ``running`` row.
+
+    If the surrounding task is cancelled externally (``asyncio.CancelledError``)
+    mid-run, the partial execution is finalized to the runstore as ``cancelled``
+    and the exception is re-raised.
 
     Raises :class:`ValueError` for input-validation errors (before any runstore
     row is created). Step failures are never raised — they are recorded in the
@@ -243,34 +320,41 @@ async def execute_workflow(
     steps: list[StepResult] = []
     abort = False
 
-    for step in workflow.steps:
-        if abort:
-            steps.append(
-                StepResult(
+    try:
+        for step in workflow.steps:
+            cancelled = cancel_event is not None and cancel_event.is_set()
+            if abort or cancelled:
+                reason = (
+                    "run cancelled by user"
+                    if cancelled
+                    else "workflow aborted by prior step failure"
+                )
+                step_result = StepResult(
                     step_id=step.id,
                     server=step.server,
                     tool=step.tool,
                     args_resolved={},
                     status="skipped",
-                    error="workflow aborted by prior step failure",
+                    error=reason,
                 )
-            )
-            continue
+                steps.append(step_result)
+                if on_step is not None:
+                    on_step(step_result)
+                continue
 
-        step_started = _now()
-        args_resolved: dict[str, Any] = {}
-        try:
-            args_resolved = _substitute(step.args, env)
-            result = await pool.call_tool(step.server, step.tool, args_resolved)
-            status, error, value = _assess_result(result)
-        except ValueError as exc:  # substitution failure (unknown/dotted var)
-            status, error, value = "failed", f"argument substitution failed: {exc}", None
-        except ServerError as exc:
-            status, error, value = "failed", str(exc), None
+            step_started = _now()
+            args_resolved: dict[str, Any] = {}
+            try:
+                args_resolved = _substitute(step.args, env)
+                result = await pool.call_tool(step.server, step.tool, args_resolved)
+                status, error, value = _assess_result(result)
+            except ValueError as exc:  # substitution failure (unknown/dotted var)
+                status, error, value = "failed", f"argument substitution failed: {exc}", None
+            except ServerError as exc:
+                status, error, value = "failed", str(exc), None
 
-        step_finished = _now()
-        steps.append(
-            StepResult(
+            step_finished = _now()
+            step_result = StepResult(
                 step_id=step.id,
                 server=step.server,
                 tool=step.tool,
@@ -282,38 +366,37 @@ async def execute_workflow(
                 finished_at_utc=step_finished,
                 duration_ms=_duration_ms(step_started, step_finished),
             )
-        )
-        if status == "failed":
-            if step.on_failure == "fail":
-                abort = True
-        elif step.capture:
-            env[step.capture] = value
+            steps.append(step_result)
+            if on_step is not None:
+                on_step(step_result)
+            if status == "failed":
+                if step.on_failure == "fail":
+                    abort = True
+            elif step.capture:
+                env[step.capture] = value
+    except asyncio.CancelledError:
+        # A true external cancellation (task.cancel()) also records the partial
+        # run as a real 'cancelled' row + artifact instead of leaving it dangling.
+        if runstore_db:
+            execution = _build_execution(
+                workflow, inputs_resolved, rid, "cancelled", started_at, steps, env
+            )
+            _finalize_runstore(rid, execution, payload, runstore_db, tool_version=tool_version)
+        raise
 
-    execution_status = "failed" if any(s.status == "failed" for s in steps) else "succeeded"
-    outputs = _build_outputs(workflow, env)
-    execution = WorkflowExecution(
-        workflow_id=workflow.workflow_id,
-        workflow_version=workflow.version,
-        source_prompt=workflow.source_prompt,
-        inputs_resolved=inputs_resolved,
-        run_id=rid,
-        status=execution_status,
-        started_at_utc=started_at,
-        finished_at_utc=_now(),
-        steps=steps,
-        outputs=outputs,
+    # Cancelled wins over both failed and succeeded when the flag is set.
+    if cancel_event is not None and cancel_event.is_set():
+        execution_status = "cancelled"
+    elif any(s.status == "failed" for s in steps):
+        execution_status = "failed"
+    else:
+        execution_status = "succeeded"
+
+    execution = _build_execution(
+        workflow, inputs_resolved, rid, execution_status, started_at, steps, env
     )
 
     if runstore_db:
-        message = _failure_message(execution)
-        update_run(
-            rid,
-            status=execution_status,
-            message=message,
-            payload={**payload, "status": execution_status},
-            runstore_db=runstore_db,
-        )
-        artifact_path = _persist_execution(execution, runstore_db, tool_version=tool_version)
-        attach_artifact(rid, artifact_path, runstore_db=runstore_db)
+        _finalize_runstore(rid, execution, payload, runstore_db, tool_version=tool_version)
 
     return execution

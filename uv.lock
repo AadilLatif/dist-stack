@@ -478,6 +478,7 @@ version = "0.1.0"
 source = { virtual = "apps/dist-dashboard" }
 dependencies = [
     { name = "anyio" },
+    { name = "dist-kg" },
     { name = "dist-stack-model-registry" },
     { name = "dist-workflow-runner" },
     { name = "openai" },
@@ -489,6 +490,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "anyio" },
+    { name = "dist-kg", editable = "packages/dist-kg" },
     { name = "dist-stack-model-registry", editable = "packages/dist-stack-model-registry" },
     { name = "dist-workflow-runner", editable = "packages/dist-workflow-runner" },
     { name = "openai", specifier = ">=1.30" },
