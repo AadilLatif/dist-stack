@@ -163,7 +163,14 @@ class ServerPool:
         return handle
 
     async def list_tools(self, name: str) -> list[dict[str, Any]]:
-        """List ``{"name", "description", "required_params"}`` for a server."""
+        """List ``{"name", "description", "required_params", "input_schema"}``.
+
+        ``input_schema`` carries the full JSON schema for each tool (added for
+        the dist-dashboard assistant, which needs it to build LLM tool
+        catalogs). The runner's own ``list_tools`` MCP tool serialises the
+        whole dict, so consumers that only read the named fields are
+        unaffected by the extra key.
+        """
         handle = await self.connect(name)
         assert handle.session is not None
         result = await handle.session.list_tools()
@@ -176,6 +183,7 @@ class ServerPool:
                     "name": tool.name,
                     "description": tool.description or "",
                     "required_params": list(required),
+                    "input_schema": schema,
                 }
             )
         return tools
