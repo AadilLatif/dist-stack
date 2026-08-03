@@ -2,8 +2,8 @@
   "schema_version": 1,
   "workflow_id": "assistant_demo_flow",
   "version": "1.0.0",
-  "name": "Run LinDistFlow on a registered model",
-  "description": "Runs LinDistFlow (gdm_flow.opf_run_lindistflow) on a GDM DistributionSystem referenced by its registry model_id.",
+  "name": "Summarize + run LinDistFlow on a registered model",
+  "description": "Two-step demo: inspect a GDM DistributionSystem (gdm.get_system_summary), then run LinDistFlow (gdm_flow.opf_run_lindistflow). Both reference the model by registry model_id, so each step is recorded and linked to the model in the knowledge graph.",
   "inputs": [
     {
       "name": "model_id",
@@ -14,8 +14,8 @@
   "steps": [
     {
       "id": "step_1",
-      "server": "gdm_flow",
-      "tool": "opf_run_lindistflow",
+      "server": "gdm",
+      "tool": "get_system_summary",
       "args": {
         "model_ref": {
           "model_id": "${model_id}",
@@ -24,12 +24,29 @@
       },
       "capture": "step_1",
       "on_failure": "fail"
+    },
+    {
+      "id": "step_2",
+      "server": "gdm_flow",
+      "tool": "opf_run_lindistflow",
+      "args": {
+        "model_ref": {
+          "model_id": "${model_id}",
+          "version": 1
+        }
+      },
+      "capture": "step_2",
+      "on_failure": "fail"
     }
   ],
   "outputs": [
     {
-      "name": "result",
+      "name": "summary",
       "from": "step_1"
+    },
+    {
+      "name": "pf",
+      "from": "step_2"
     }
   ]
 }
