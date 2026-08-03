@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "workflow_id": "assistant_demo_flow",
+  "version": "1.0.0",
+  "name": "Assistant: Run AC power flow",
+  "description": "Assembled conversationally from an assistant trace. Intent: Run AC power flow",
+  "source_prompt": "assistant://c8c391147e23ca21abb8e85cbdccf7bbcf6dfa8c58d8f0ba7c86999b929f106e",
+  "inputs": [
+    {
+      "name": "system_path",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "solver",
+      "type": "string",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "id": "step_1",
+      "server": "gdm",
+      "tool": "get_system_summary",
+      "args": {
+        "system_path": "${system_path}"
+      },
+      "capture": "step_1",
+      "on_failure": "fail"
+    },
+    {
+      "id": "step_2",
+      "server": "gdm_flow",
+      "tool": "run_ac_pf",
+      "args": {
+        "system_path": "${step_1.path}",
+        "solver": "${solver}"
+      },
+      "capture": "step_2",
+      "on_failure": "fail"
+    }
+  ],
+  "outputs": [
+    {
+      "name": "pf",
+      "from": "step_2.pf"
+    }
+  ]
+}
