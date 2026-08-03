@@ -111,6 +111,78 @@ def _resolve_inputs(workflow: WorkflowSpec, inputs: Any) -> dict[str, Any]:
     return resolved
 
 
+def _infer_model_id(workflow: WorkflowSpec, inputs_resolved: dict[str, Any]) -> str | None:
+    """Best-effort model-id inference for run provenance.
+
+    Priority:
+    1) top-level ``inputs_resolved['model_id']`` when non-empty string
+    2) any input value shaped like ``{"model_id": "..."}``
+    3) first model-id found while walking step args (dict/list), where
+       ``model_id`` is either a literal string or ``${var}`` (first dotted
+       segment resolved against ``inputs_resolved``).
+    """
+
+    def _non_empty_str(value: Any) -> str | None:
+        if isinstance(value, str):
+            trimmed = value.strip()
+            if trimmed:
+                return trimmed
+        return None
+
+    try:
+        # (a) direct model_id input
+        direct = _non_empty_str(inputs_resolved.get("model_id"))
+        if direct:
+            return direct
+
+        # (b) any model_ref-ish input carrying model_id
+        for value in inputs_resolved.values():
+            if isinstance(value, dict):
+                nested = _non_empty_str(value.get("model_id"))
+                if nested:
+                    return nested
+
+        # (c) walk step args and inspect dicts containing model_id
+        def _resolve_candidate(value: Any) -> str | None:
+            literal = _non_empty_str(value)
+            if literal:
+                return literal
+            if not isinstance(value, str):
+                return None
+            match = _VAR_RE.fullmatch(value)
+            if not match:
+                return None
+            var_name = match.group(1)
+            first_part = var_name.split(".", 1)[0]
+            return _non_empty_str(inputs_resolved.get(first_part))
+
+        def _walk(node: Any) -> str | None:
+            if isinstance(node, dict):
+                if "model_id" in node:
+                    inferred = _resolve_candidate(node.get("model_id"))
+                    if inferred:
+                        return inferred
+                for child in node.values():
+                    inferred = _walk(child)
+                    if inferred:
+                        return inferred
+            elif isinstance(node, list):
+                for child in node:
+                    inferred = _walk(child)
+                    if inferred:
+                        return inferred
+            return None
+
+        for step in workflow.steps:
+            inferred = _walk(getattr(step, "args", None))
+            if inferred:
+                return inferred
+    except Exception:
+        return None
+
+    return None
+
+
 def _build_outputs(workflow: WorkflowSpec, env: dict[str, Any]) -> dict[str, Any]:
     outputs: dict[str, Any] = {}
     for out in workflow.outputs:
@@ -311,6 +383,7 @@ async def execute_workflow(
             run_type=RUN_TYPE,
             run_id=rid,
             status="running",
+            model_id=_infer_model_id(workflow, inputs_resolved),
             tool_version=tool_version,
             payload=payload,
             runstore_db=runstore_db,

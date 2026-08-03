@@ -12,7 +12,7 @@ import pytest
 from dist_stack.runstore import get_run, list_artifacts
 
 from workflow_runner.client import ToolCallTimeout
-from workflow_runner.executor import execute_workflow
+from workflow_runner.executor import _infer_model_id, execute_workflow
 from workflow_runner.models import WorkflowSpec, WorkflowStep
 from workflow_runner.templates import validate_workflow
 
@@ -132,6 +132,38 @@ class TestSubstitution:
         wf = _wf(steps=[{"id": "s1", "server": "fake_server", "tool": "echo", "args": {}}])
         with pytest.raises(ValueError, match="missing required input"):
             run(execute_workflow(wf, {}, fake_pool))
+
+
+class TestInferModelId:
+    def test_top_level_input_wins(self):
+        wf = _wf(steps=[{"id": "s1", "server": "fake_server", "tool": "echo", "args": {"text": "ok"}}])
+        assert _infer_model_id(wf, {"model_id": "top"}) == "top"
+
+    def test_resolves_template_model_id_from_inputs(self):
+        wf = _wf(
+            steps=[
+                {
+                    "id": "s1",
+                    "server": "fake_server",
+                    "tool": "echo",
+                    "args": {"model_ref": {"model_id": "${model_id}", "version": 1}},
+                }
+            ]
+        )
+        assert _infer_model_id(wf, {"model_id": "abc123"}) == "abc123"
+
+    def test_literal_model_id_in_step_args(self):
+        wf = _wf(
+            steps=[
+                {
+                    "id": "s1",
+                    "server": "fake_server",
+                    "tool": "echo",
+                    "args": {"model_ref": {"model_id": "lit-999"}},
+                }
+            ]
+        )
+        assert _infer_model_id(wf, {}) == "lit-999"
 
 
 class TestOnFailure:
