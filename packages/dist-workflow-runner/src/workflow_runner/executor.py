@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
 import re
 from collections.abc import Callable
 from datetime import datetime, timezone
@@ -39,7 +40,7 @@ _VAR_RE = re.compile(r"\$\{([A-Za-z_][A-Za-z0-9_.]*)\}")
 
 RUN_TOOL = "run_workflow"
 RUN_TYPE = "workflow_execution"
-ARTIFACT_TYPE = "workflow_execution"
+ARTIFACT_TYPE = "artifact"
 EXECUTION_SUFFIX = ".execution.json"
 
 
@@ -268,6 +269,43 @@ def _persist_execution(
     return str(path)
 
 
+def _collect_step_artifact_paths(execution: WorkflowExecution) -> list[str]:
+    """Collect existing output artifact paths from step results.
+
+    Scans each step ``result`` dict for any of:
+    ``db_path``, ``output_path``, ``artifact_path``.
+    Returns deduplicated absolute paths (order preserved) that currently exist.
+    """
+
+    keys = ("db_path", "output_path", "artifact_path")
+    seen: set[str] = set()
+    paths: list[str] = []
+
+    for step in execution.steps:
+        result = step.result
+        if not isinstance(result, dict):
+            continue
+        for key in keys:
+            candidate = result.get(key)
+            if not isinstance(candidate, str):
+                continue
+            candidate = candidate.strip()
+            if not candidate:
+                continue
+            absolute = os.path.abspath(candidate)
+            if not os.path.exists(absolute):
+                continue
+            # Never treat execution-graph json paths as step artifacts.
+            if absolute.endswith(EXECUTION_SUFFIX):
+                continue
+            if absolute in seen:
+                continue
+            seen.add(absolute)
+            paths.append(absolute)
+
+    return paths
+
+
 # ---------------------------------------------------------------------------
 # Engine
 # ---------------------------------------------------------------------------
@@ -324,6 +362,22 @@ def _finalize_runstore(
     )
     artifact_path = _persist_execution(execution, runstore_db, tool_version=tool_version)
     attach_artifact(rid, artifact_path, runstore_db=runstore_db)
+    execution_artifact_abs = os.path.abspath(artifact_path)
+    for step_artifact_path in _collect_step_artifact_paths(execution):
+        if os.path.abspath(step_artifact_path) == execution_artifact_abs:
+            continue
+        try:
+            write_manifest(
+                step_artifact_path,
+                artifact_type=ARTIFACT_TYPE,
+                tool=RUN_TOOL,
+                tool_version=tool_version,
+                config={"run_id": rid},
+                derived_from=[rid],
+            )
+            attach_artifact(rid, step_artifact_path, runstore_db=runstore_db)
+        except Exception:
+            pass
 
 
 async def execute_workflow(

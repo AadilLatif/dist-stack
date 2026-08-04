@@ -231,7 +231,7 @@ class TestRunsTools:
         assert got["run"]["run_type"] == "workflow_execution"
         assert got["run"]["payload"]["workflow_id"] == "demo_flow"
         assert len(got["artifacts"]) == 1
-        assert got["artifacts"][0]["artifact_type"] == "workflow_execution"
+        assert got["artifacts"][0]["artifact_type"] == "artifact"
 
     def test_list_runs_filters(self, fake_pool, app_ctx, workflow_dir, runstore_db):
         app_ctx.pool = fake_pool
