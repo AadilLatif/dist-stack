@@ -304,6 +304,53 @@ class TestRunstoreLifecycle:
         )
         assert execution.run_id.startswith("wf_")
 
+    def test_step_artifact_path_confinement(self, runstore_db, tmp_path):
+        from conftest import FakePool
+
+        allowed_path = tmp_path / "allowed.sqlite"
+        allowed_path.write_text("ok", encoding="utf-8")
+
+        pool = FakePool()
+        pool.add_server(
+            "fake_server",
+            {
+                "emit_paths": lambda: {
+                    "success": True,
+                    "db_path": str(allowed_path),
+                    "output_path": "/etc/hosts",
+                }
+            },
+        )
+        wf = _wf(
+            steps=[
+                {
+                    "id": "s1",
+                    "server": "fake_server",
+                    "tool": "emit_paths",
+                    "args": {},
+                    "on_failure": "fail",
+                }
+            ],
+            workflow_id="artifact_confine",
+        )
+
+        execution = run(
+            execute_workflow(
+                wf,
+                {"greeting": "x"},
+                pool,
+                runstore_db=str(runstore_db),
+                run_id="wf_confine00000001",
+            )
+        )
+        assert execution.status == "succeeded"
+
+        artifacts = list_artifacts("wf_confine00000001", runstore_db=str(runstore_db))
+        paths = {Path(a.artifact_path) for a in artifacts}
+        assert len(paths) == 2
+        assert allowed_path.resolve() in paths
+        assert Path("/etc/hosts") not in paths
+
 
 class TestOnStepHook:
     """Spec 17 §2.1: per-step sync event hook (on_step)."""
