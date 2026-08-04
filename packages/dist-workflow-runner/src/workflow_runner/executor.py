@@ -125,12 +125,16 @@ def _resolve_inputs(workflow: WorkflowSpec, inputs: Any) -> dict[str, Any]:
 def _infer_model_id(workflow: WorkflowSpec, inputs_resolved: dict[str, Any]) -> str | None:
     """Best-effort model-id inference for run provenance.
 
-    Priority:
+    Candidate sources:
     1) top-level ``inputs_resolved['model_id']`` when non-empty string
     2) any input value shaped like ``{"model_id": "..."}``
-    3) first model-id found while walking step args (dict/list), where
-       ``model_id`` is either a literal string or ``${var}`` (first dotted
-       segment resolved against ``inputs_resolved``).
+    3) model-ids found while walking step args (dict/list), where ``model_id``
+       is either a literal string or ``${var}`` (first dotted segment resolved
+       against ``inputs_resolved``).
+
+    Rule: use the value only when all discovered candidates collapse to exactly
+    one distinct id. If multiple distinct ids are present, log a warning and
+    leave model_id unset to avoid guessing provenance.
     """
 
     def _non_empty_str(value: Any) -> str | None:
@@ -141,54 +145,68 @@ def _infer_model_id(workflow: WorkflowSpec, inputs_resolved: dict[str, Any]) -> 
         return None
 
     try:
+        candidates: list[str] = []
+
         # (a) direct model_id input
         direct = _non_empty_str(inputs_resolved.get("model_id"))
         if direct:
-            return direct
+            candidates.append(direct)
 
         # (b) any model_ref-ish input carrying model_id
         for value in inputs_resolved.values():
             if isinstance(value, dict):
                 nested = _non_empty_str(value.get("model_id"))
                 if nested:
-                    return nested
+                    candidates.append(nested)
 
         # (c) walk step args and inspect dicts containing model_id
         def _resolve_candidate(value: Any) -> str | None:
+            if not isinstance(value, str):
+                return _non_empty_str(value)
+            match = _VAR_RE.fullmatch(value)
+            if match:
+                var_name = match.group(1)
+                first_part = var_name.split(".", 1)[0]
+                return _non_empty_str(inputs_resolved.get(first_part))
             literal = _non_empty_str(value)
             if literal:
                 return literal
-            if not isinstance(value, str):
-                return None
-            match = _VAR_RE.fullmatch(value)
-            if not match:
-                return None
-            var_name = match.group(1)
-            first_part = var_name.split(".", 1)[0]
-            return _non_empty_str(inputs_resolved.get(first_part))
+            return None
 
-        def _walk(node: Any) -> str | None:
+        def _walk(node: Any) -> list[str]:
+            found: list[str] = []
             if isinstance(node, dict):
                 if "model_id" in node:
                     inferred = _resolve_candidate(node.get("model_id"))
                     if inferred:
-                        return inferred
+                        found.append(inferred)
                 for child in node.values():
-                    inferred = _walk(child)
-                    if inferred:
-                        return inferred
+                    found.extend(_walk(child))
             elif isinstance(node, list):
                 for child in node:
-                    inferred = _walk(child)
-                    if inferred:
-                        return inferred
-            return None
+                    found.extend(_walk(child))
+            return found
 
         for step in workflow.steps:
-            inferred = _walk(getattr(step, "args", None))
-            if inferred:
-                return inferred
-    except (TypeError, AttributeError, KeyError, ValueError):
+            candidates.extend(_walk(getattr(step, "args", None)))
+
+        distinct_candidates = sorted(set(candidates))
+        if len(distinct_candidates) == 1:
+            return distinct_candidates[0]
+        if len(distinct_candidates) > 1:
+            LOGGER.warning(
+                "Ambiguous model_id inference for workflow %s: multiple candidates found %s; leaving model_id unset",
+                getattr(workflow, "workflow_id", "<unknown>"),
+                distinct_candidates,
+            )
+            return None
+    except (TypeError, AttributeError, KeyError, ValueError) as exc:
+        LOGGER.warning(
+            "model_id inference failed for workflow %s: %s",
+            getattr(workflow, "workflow_id", "<unknown>"),
+            exc,
+        )
+        LOGGER.debug("model_id inference traceback", exc_info=True)
         return None
 
     return None

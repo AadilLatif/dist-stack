@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 from pathlib import Path
 
 import pytest
@@ -164,6 +165,46 @@ class TestInferModelId:
             ]
         )
         assert _infer_model_id(wf, {}) == "lit-999"
+
+    def test_unambiguous_single_candidate_inferred(self):
+        wf = _wf(
+            steps=[
+                {
+                    "id": "s1",
+                    "server": "fake_server",
+                    "tool": "echo",
+                    "args": {
+                        "model_ref": {"model_id": "same-123"},
+                        "alt_model_ref": {"model_id": "same-123"},
+                    },
+                }
+            ]
+        )
+        assert _infer_model_id(wf, {}) == "same-123"
+
+    def test_multiple_distinct_candidates_logs_warning_and_returns_none(self, caplog):
+        wf = _wf(
+            steps=[
+                {
+                    "id": "s1",
+                    "server": "fake_server",
+                    "tool": "echo",
+                    "args": {
+                        "first": {"model_id": "a-model"},
+                        "second": {"model_id": "b-model"},
+                    },
+                }
+            ],
+            workflow_id="ambiguous_model_id",
+        )
+
+        with caplog.at_level(logging.WARNING):
+            inferred = _infer_model_id(wf, {})
+
+        assert inferred is None
+        assert "Ambiguous model_id inference" in caplog.text
+        assert "a-model" in caplog.text
+        assert "b-model" in caplog.text
 
 
 class TestOnFailure:
