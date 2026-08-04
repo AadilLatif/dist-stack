@@ -25,3 +25,17 @@ jobs:
 
       - name: Build the docs (Jupyter Book)
         run: uv run jupyter-book build docs
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "0.12.1"
+          python-version: "3.12"
+
+      - name: Ruff (syntax + undefined-name checks)
+        run: uvx ruff@0.11.13 check --select E9,F63,F7,F82 packages apps
