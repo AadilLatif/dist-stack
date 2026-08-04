@@ -357,7 +357,11 @@ def _finalize_runstore(
         rid,
         status=execution.status,
         message=message,
-        payload={**payload, "status": execution.status},
+        payload={
+            **payload,
+            "status": execution.status,
+            "steps": [s.to_dict() for s in execution.steps],
+        },
         runstore_db=runstore_db,
     )
     artifact_path = _persist_execution(execution, runstore_db, tool_version=tool_version)
