@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "workflow_id": "convert_gdm_to_opendss",
+  "version": "1.0.0",
+  "name": "Convert a GDM model to OpenDSS",
+  "description": "Model conversion demo: load a GDM DistributionSystem (JSON) into DiTTo, then write it out in OpenDSS format. Provide the GDM system JSON path (system_path) and an output directory (output_path). The two steps share DiTTo's in-session state via the 'conv' name.",
+  "inputs": [
+    {
+      "name": "system_path",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "output_path",
+      "type": "string",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "id": "step_1",
+      "server": "ditto",
+      "tool": "load_gdm_json",
+      "args": {
+        "json_file": "${system_path}",
+        "name": "conv"
+      },
+      "capture": "step_1",
+      "on_failure": "fail"
+    },
+    {
+      "id": "step_2",
+      "server": "ditto",
+      "tool": "write_opendss",
+      "args": {
+        "name": "conv",
+        "output_path": "${output_path}",
+        "separate_substations": false,
+        "separate_feeders": false
+      },
+      "capture": "step_2",
+      "on_failure": "fail"
+    }
+  ],
+  "outputs": [
+    {
+      "name": "loaded",
+      "from": "step_1"
+    },
+    {
+      "name": "opendss",
+      "from": "step_2"
+    }
+  ]
+}
