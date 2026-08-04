@@ -3,12 +3,17 @@
   "workflow_id": "assistant_demo_flow",
   "version": "1.0.0",
   "name": "Summarize + run LinDistFlow on a registered model",
-  "description": "Two-step demo: inspect a GDM DistributionSystem (gdm.get_system_summary), then run LinDistFlow (gdm_flow.opf_run_lindistflow). Both reference the model by registry model_id, so each step is recorded and linked to the model in the knowledge graph.",
+  "description": "Two-step demo: inspect a GDM DistributionSystem (gdm.get_system_summary), then run LinDistFlow (gdm_flow.opf_run_lindistflow). Both reference the model by registry model_id, so each step is recorded and linked to the model in the knowledge graph. Provide the optional db_path input to also export the LinDistFlow results to a SQLite database.",
   "inputs": [
     {
       "name": "model_id",
       "type": "string",
       "required": true
+    },
+    {
+      "name": "db_path",
+      "type": "string",
+      "required": false
     }
   ],
   "steps": [
@@ -33,7 +38,8 @@
         "model_ref": {
           "model_id": "${model_id}",
           "version": 1
-        }
+        },
+        "db_path": "${db_path}"
       },
       "capture": "step_2",
       "on_failure": "fail"
