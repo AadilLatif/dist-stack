@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import os
 import re
 from collections.abc import Callable
@@ -24,14 +25,20 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from dist_stack.kg import get_kg_path
+from dist_stack.kg.errors import KGUnavailableError
 from dist_stack.manifest import write_manifest
+from dist_stack.registry import get_registry_path
+from dist_stack.registry.errors import RegistryUnavailableError
 from dist_stack.runstore import (
     attach_artifact,
     create_run,
     ensure_schema,
+    get_runstore_path,
     make_run_id,
     update_run,
 )
+from dist_stack.runstore.errors import RunstoreUnavailableError
 
 from .client import ServerError
 from .models import StepResult, WorkflowExecution, WorkflowSpec
@@ -42,6 +49,9 @@ RUN_TOOL = "run_workflow"
 RUN_TYPE = "workflow_execution"
 ARTIFACT_TYPE = "artifact"
 EXECUTION_SUFFIX = ".execution.json"
+DEFAULT_CACHE_ROOT = Path("~/.cache/dist-stack").expanduser()
+
+LOGGER = logging.getLogger(__name__)
 
 
 def _now() -> str:
@@ -99,7 +109,7 @@ def _resolve_inputs(workflow: WorkflowSpec, inputs: Any) -> dict[str, Any]:
     if inputs is None:
         inputs = {}
     if not isinstance(inputs, dict):
-        raise ValueError("inputs must be a mapping of name -> value")
+        raise TypeError("inputs must be a mapping of name -> value")
     resolved = dict(inputs)
     for inp in workflow.inputs:
         name = inp.get("name")
@@ -115,12 +125,16 @@ def _resolve_inputs(workflow: WorkflowSpec, inputs: Any) -> dict[str, Any]:
 def _infer_model_id(workflow: WorkflowSpec, inputs_resolved: dict[str, Any]) -> str | None:
     """Best-effort model-id inference for run provenance.
 
-    Priority:
+    Candidate sources:
     1) top-level ``inputs_resolved['model_id']`` when non-empty string
     2) any input value shaped like ``{"model_id": "..."}``
-    3) first model-id found while walking step args (dict/list), where
-       ``model_id`` is either a literal string or ``${var}`` (first dotted
-       segment resolved against ``inputs_resolved``).
+    3) model-ids found while walking step args (dict/list), where ``model_id``
+       is either a literal string or ``${var}`` (first dotted segment resolved
+       against ``inputs_resolved``).
+
+    Rule: use the value only when all discovered candidates collapse to exactly
+    one distinct id. If multiple distinct ids are present, log a warning and
+    leave model_id unset to avoid guessing provenance.
     """
 
     def _non_empty_str(value: Any) -> str | None:
@@ -131,54 +145,68 @@ def _infer_model_id(workflow: WorkflowSpec, inputs_resolved: dict[str, Any]) -> 
         return None
 
     try:
+        candidates: list[str] = []
+
         # (a) direct model_id input
         direct = _non_empty_str(inputs_resolved.get("model_id"))
         if direct:
-            return direct
+            candidates.append(direct)
 
         # (b) any model_ref-ish input carrying model_id
         for value in inputs_resolved.values():
             if isinstance(value, dict):
                 nested = _non_empty_str(value.get("model_id"))
                 if nested:
-                    return nested
+                    candidates.append(nested)
 
         # (c) walk step args and inspect dicts containing model_id
         def _resolve_candidate(value: Any) -> str | None:
+            if not isinstance(value, str):
+                return _non_empty_str(value)
+            match = _VAR_RE.fullmatch(value)
+            if match:
+                var_name = match.group(1)
+                first_part = var_name.split(".", 1)[0]
+                return _non_empty_str(inputs_resolved.get(first_part))
             literal = _non_empty_str(value)
             if literal:
                 return literal
-            if not isinstance(value, str):
-                return None
-            match = _VAR_RE.fullmatch(value)
-            if not match:
-                return None
-            var_name = match.group(1)
-            first_part = var_name.split(".", 1)[0]
-            return _non_empty_str(inputs_resolved.get(first_part))
+            return None
 
-        def _walk(node: Any) -> str | None:
+        def _walk(node: Any) -> list[str]:
+            found: list[str] = []
             if isinstance(node, dict):
                 if "model_id" in node:
                     inferred = _resolve_candidate(node.get("model_id"))
                     if inferred:
-                        return inferred
+                        found.append(inferred)
                 for child in node.values():
-                    inferred = _walk(child)
-                    if inferred:
-                        return inferred
+                    found.extend(_walk(child))
             elif isinstance(node, list):
                 for child in node:
-                    inferred = _walk(child)
-                    if inferred:
-                        return inferred
-            return None
+                    found.extend(_walk(child))
+            return found
 
         for step in workflow.steps:
-            inferred = _walk(getattr(step, "args", None))
-            if inferred:
-                return inferred
-    except Exception:
+            candidates.extend(_walk(getattr(step, "args", None)))
+
+        distinct_candidates = sorted(set(candidates))
+        if len(distinct_candidates) == 1:
+            return distinct_candidates[0]
+        if len(distinct_candidates) > 1:
+            LOGGER.warning(
+                "Ambiguous model_id inference for workflow %s: multiple candidates found %s; leaving model_id unset",
+                getattr(workflow, "workflow_id", "<unknown>"),
+                distinct_candidates,
+            )
+            return None
+    except (TypeError, AttributeError, KeyError, ValueError) as exc:
+        LOGGER.warning(
+            "model_id inference failed for workflow %s: %s",
+            getattr(workflow, "workflow_id", "<unknown>"),
+            exc,
+        )
+        LOGGER.debug("model_id inference traceback", exc_info=True)
         return None
 
     return None
@@ -306,6 +334,70 @@ def _collect_step_artifact_paths(execution: WorkflowExecution) -> list[str]:
     return paths
 
 
+def _is_within_root(path: Path, root: Path) -> bool:
+    """True when ``path`` is inside ``root`` (or equals it)."""
+    try:
+        path.relative_to(root)
+        return True
+    except ValueError:
+        return False
+
+
+def _allowed_artifact_roots(runstore_db: str) -> list[Path]:
+    """Compute absolute allowlisted roots for step-produced artifact paths."""
+
+    roots: list[Path] = []
+
+    def _add_root(path_like: str | os.PathLike | None) -> None:
+        if not path_like:
+            return
+        root = Path(path_like).expanduser().resolve()
+        if root not in roots:
+            roots.append(root)
+
+    # Always allow the runstore root (where execution artifacts live).
+    _add_root(Path(runstore_db).expanduser().resolve().parent)
+
+    # Shared dist-stack cache root is a conservative fallback for cache outputs.
+    _add_root(DEFAULT_CACHE_ROOT)
+
+    # If configured, include parents of DB paths used across dist-stack.
+    try:
+        _add_root(Path(get_runstore_path(runstore_db)).expanduser().resolve().parent)
+    except RunstoreUnavailableError:
+        pass
+    try:
+        _add_root(Path(get_registry_path()).expanduser().resolve().parent)
+    except RegistryUnavailableError:
+        pass
+    try:
+        _add_root(Path(get_kg_path()).expanduser().resolve().parent)
+    except KGUnavailableError:
+        pass
+
+    return roots
+
+
+def _confine_artifact_path(path: str, allowed_roots: list[Path]) -> str | None:
+    """Return normalized absolute path when confined to an allowed root."""
+
+    try:
+        resolved = Path(path).expanduser().resolve()
+    except OSError:
+        LOGGER.warning("Skipping artifact path; failed to resolve: %r", path)
+        return None
+
+    if any(_is_within_root(resolved, root) for root in allowed_roots):
+        return str(resolved)
+
+    LOGGER.warning(
+        "Skipping artifact path outside allowed roots: %s (allowed=%s)",
+        resolved,
+        [str(root) for root in allowed_roots],
+    )
+    return None
+
+
 # ---------------------------------------------------------------------------
 # Engine
 # ---------------------------------------------------------------------------
@@ -364,24 +456,36 @@ def _finalize_runstore(
         },
         runstore_db=runstore_db,
     )
-    artifact_path = _persist_execution(execution, runstore_db, tool_version=tool_version)
-    attach_artifact(rid, artifact_path, runstore_db=runstore_db)
-    execution_artifact_abs = os.path.abspath(artifact_path)
+    artifact_path = None
+    try:
+        artifact_path = _persist_execution(execution, runstore_db, tool_version=tool_version)
+        attach_artifact(rid, artifact_path, runstore_db=runstore_db)
+    except Exception:
+        LOGGER.exception("Failed to persist/attach execution artifact for run %s", rid)
+        artifact_path = None
+
+    allowed_roots = _allowed_artifact_roots(runstore_db)
+    execution_artifact_abs = os.path.abspath(artifact_path) if artifact_path else None
     for step_artifact_path in _collect_step_artifact_paths(execution):
-        if os.path.abspath(step_artifact_path) == execution_artifact_abs:
+        confined_path = _confine_artifact_path(step_artifact_path, allowed_roots)
+        if not confined_path:
+            continue
+        if execution_artifact_abs and os.path.abspath(confined_path) == execution_artifact_abs:
             continue
         try:
             write_manifest(
-                step_artifact_path,
+                confined_path,
                 artifact_type=ARTIFACT_TYPE,
                 tool=RUN_TOOL,
                 tool_version=tool_version,
                 config={"run_id": rid},
                 derived_from=[rid],
             )
-            attach_artifact(rid, step_artifact_path, runstore_db=runstore_db)
+            attach_artifact(rid, confined_path, runstore_db=runstore_db)
         except Exception:
-            pass
+            LOGGER.exception(
+                "Failed to attach step artifact for run %s: %s", rid, confined_path
+            )
 
 
 async def execute_workflow(
