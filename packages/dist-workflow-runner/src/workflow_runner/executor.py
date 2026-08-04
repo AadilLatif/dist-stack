@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
 import re
 from collections.abc import Callable
 from datetime import datetime, timezone
@@ -39,7 +40,7 @@ _VAR_RE = re.compile(r"\$\{([A-Za-z_][A-Za-z0-9_.]*)\}")
 
 RUN_TOOL = "run_workflow"
 RUN_TYPE = "workflow_execution"
-ARTIFACT_TYPE = "workflow_execution"
+ARTIFACT_TYPE = "artifact"
 EXECUTION_SUFFIX = ".execution.json"
 
 
@@ -109,6 +110,78 @@ def _resolve_inputs(workflow: WorkflowSpec, inputs: Any) -> dict[str, Any]:
         if name not in resolved:
             resolved[name] = None
     return resolved
+
+
+def _infer_model_id(workflow: WorkflowSpec, inputs_resolved: dict[str, Any]) -> str | None:
+    """Best-effort model-id inference for run provenance.
+
+    Priority:
+    1) top-level ``inputs_resolved['model_id']`` when non-empty string
+    2) any input value shaped like ``{"model_id": "..."}``
+    3) first model-id found while walking step args (dict/list), where
+       ``model_id`` is either a literal string or ``${var}`` (first dotted
+       segment resolved against ``inputs_resolved``).
+    """
+
+    def _non_empty_str(value: Any) -> str | None:
+        if isinstance(value, str):
+            trimmed = value.strip()
+            if trimmed:
+                return trimmed
+        return None
+
+    try:
+        # (a) direct model_id input
+        direct = _non_empty_str(inputs_resolved.get("model_id"))
+        if direct:
+            return direct
+
+        # (b) any model_ref-ish input carrying model_id
+        for value in inputs_resolved.values():
+            if isinstance(value, dict):
+                nested = _non_empty_str(value.get("model_id"))
+                if nested:
+                    return nested
+
+        # (c) walk step args and inspect dicts containing model_id
+        def _resolve_candidate(value: Any) -> str | None:
+            literal = _non_empty_str(value)
+            if literal:
+                return literal
+            if not isinstance(value, str):
+                return None
+            match = _VAR_RE.fullmatch(value)
+            if not match:
+                return None
+            var_name = match.group(1)
+            first_part = var_name.split(".", 1)[0]
+            return _non_empty_str(inputs_resolved.get(first_part))
+
+        def _walk(node: Any) -> str | None:
+            if isinstance(node, dict):
+                if "model_id" in node:
+                    inferred = _resolve_candidate(node.get("model_id"))
+                    if inferred:
+                        return inferred
+                for child in node.values():
+                    inferred = _walk(child)
+                    if inferred:
+                        return inferred
+            elif isinstance(node, list):
+                for child in node:
+                    inferred = _walk(child)
+                    if inferred:
+                        return inferred
+            return None
+
+        for step in workflow.steps:
+            inferred = _walk(getattr(step, "args", None))
+            if inferred:
+                return inferred
+    except Exception:
+        return None
+
+    return None
 
 
 def _build_outputs(workflow: WorkflowSpec, env: dict[str, Any]) -> dict[str, Any]:
@@ -196,6 +269,43 @@ def _persist_execution(
     return str(path)
 
 
+def _collect_step_artifact_paths(execution: WorkflowExecution) -> list[str]:
+    """Collect existing output artifact paths from step results.
+
+    Scans each step ``result`` dict for any of:
+    ``db_path``, ``output_path``, ``artifact_path``.
+    Returns deduplicated absolute paths (order preserved) that currently exist.
+    """
+
+    keys = ("db_path", "output_path", "artifact_path")
+    seen: set[str] = set()
+    paths: list[str] = []
+
+    for step in execution.steps:
+        result = step.result
+        if not isinstance(result, dict):
+            continue
+        for key in keys:
+            candidate = result.get(key)
+            if not isinstance(candidate, str):
+                continue
+            candidate = candidate.strip()
+            if not candidate:
+                continue
+            absolute = os.path.abspath(candidate)
+            if not os.path.exists(absolute):
+                continue
+            # Never treat execution-graph json paths as step artifacts.
+            if absolute.endswith(EXECUTION_SUFFIX):
+                continue
+            if absolute in seen:
+                continue
+            seen.add(absolute)
+            paths.append(absolute)
+
+    return paths
+
+
 # ---------------------------------------------------------------------------
 # Engine
 # ---------------------------------------------------------------------------
@@ -247,11 +357,31 @@ def _finalize_runstore(
         rid,
         status=execution.status,
         message=message,
-        payload={**payload, "status": execution.status},
+        payload={
+            **payload,
+            "status": execution.status,
+            "steps": [s.to_dict() for s in execution.steps],
+        },
         runstore_db=runstore_db,
     )
     artifact_path = _persist_execution(execution, runstore_db, tool_version=tool_version)
     attach_artifact(rid, artifact_path, runstore_db=runstore_db)
+    execution_artifact_abs = os.path.abspath(artifact_path)
+    for step_artifact_path in _collect_step_artifact_paths(execution):
+        if os.path.abspath(step_artifact_path) == execution_artifact_abs:
+            continue
+        try:
+            write_manifest(
+                step_artifact_path,
+                artifact_type=ARTIFACT_TYPE,
+                tool=RUN_TOOL,
+                tool_version=tool_version,
+                config={"run_id": rid},
+                derived_from=[rid],
+            )
+            attach_artifact(rid, step_artifact_path, runstore_db=runstore_db)
+        except Exception:
+            pass
 
 
 async def execute_workflow(
@@ -311,6 +441,7 @@ async def execute_workflow(
             run_type=RUN_TYPE,
             run_id=rid,
             status="running",
+            model_id=_infer_model_id(workflow, inputs_resolved),
             tool_version=tool_version,
             payload=payload,
             runstore_db=runstore_db,

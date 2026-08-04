@@ -159,7 +159,7 @@ def _load_prior_graph(
 
     graph_path = None
     for artifact in rs_list_artifacts(reuse_run_id, runstore_db=runstore_db):
-        if artifact.artifact_type == "workflow_execution":
+        if artifact.artifact_path.endswith(".execution.json"):
             graph_path = artifact.artifact_path
             break
     if graph_path is None:

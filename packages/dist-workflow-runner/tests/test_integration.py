@@ -176,7 +176,7 @@ def test_end_to_end_success(tmp_path):
     artifacts = list_artifacts(rid, runstore_db=str(runstore_db))
     assert len(artifacts) == 1
     art = artifacts[0]
-    assert art.artifact_type == "workflow_execution"
+    assert art.artifact_type == "artifact"
     assert art.tool == "run_workflow"
 
     # -- execution-graph artifact ----------------------------------------------
@@ -207,7 +207,7 @@ def test_end_to_end_success(tmp_path):
     manifest_path = Path(str(artifact_path) + ".manifest.json")
     assert manifest_path.is_file()
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    assert manifest["artifact_type"] == "workflow_execution"
+    assert manifest["artifact_type"] == "artifact"
     assert manifest["tool"] == "run_workflow"
     assert manifest["config"] == {
         "workflow_id": "integration_flow",

@@ -2,19 +2,18 @@
   "schema_version": 1,
   "workflow_id": "assistant_demo_flow",
   "version": "1.0.0",
-  "name": "Assistant: Run AC power flow",
-  "description": "Assembled conversationally from an assistant trace. Intent: Run AC power flow",
-  "source_prompt": "assistant://c8c391147e23ca21abb8e85cbdccf7bbcf6dfa8c58d8f0ba7c86999b929f106e",
+  "name": "Summarize + run LinDistFlow on a registered model",
+  "description": "Two-step demo: inspect a GDM DistributionSystem (gdm.get_system_summary), then run LinDistFlow (gdm_flow.opf_run_lindistflow). Both reference the model by registry model_id, so each step is recorded and linked to the model in the knowledge graph. Provide the optional db_path input to also export the LinDistFlow results to a SQLite database.",
   "inputs": [
     {
-      "name": "system_path",
+      "name": "model_id",
       "type": "string",
       "required": true
     },
     {
-      "name": "solver",
+      "name": "db_path",
       "type": "string",
-      "required": true
+      "required": false
     }
   ],
   "steps": [
@@ -23,7 +22,10 @@
       "server": "gdm",
       "tool": "get_system_summary",
       "args": {
-        "system_path": "${system_path}"
+        "model_ref": {
+          "model_id": "${model_id}",
+          "version": 1
+        }
       },
       "capture": "step_1",
       "on_failure": "fail"
@@ -31,10 +33,13 @@
     {
       "id": "step_2",
       "server": "gdm_flow",
-      "tool": "run_ac_pf",
+      "tool": "opf_run_lindistflow",
       "args": {
-        "system_path": "${step_1.path}",
-        "solver": "${solver}"
+        "model_ref": {
+          "model_id": "${model_id}",
+          "version": 1
+        },
+        "db_path": "${db_path}"
       },
       "capture": "step_2",
       "on_failure": "fail"
@@ -42,8 +47,12 @@
   ],
   "outputs": [
     {
+      "name": "summary",
+      "from": "step_1"
+    },
+    {
       "name": "pf",
-      "from": "step_2.pf"
+      "from": "step_2"
     }
   ]
 }
