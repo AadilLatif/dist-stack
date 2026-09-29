@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 from pathlib import Path
 
 import pytest
@@ -165,6 +166,46 @@ class TestInferModelId:
         )
         assert _infer_model_id(wf, {}) == "lit-999"
 
+    def test_unambiguous_single_candidate_inferred(self):
+        wf = _wf(
+            steps=[
+                {
+                    "id": "s1",
+                    "server": "fake_server",
+                    "tool": "echo",
+                    "args": {
+                        "model_ref": {"model_id": "same-123"},
+                        "alt_model_ref": {"model_id": "same-123"},
+                    },
+                }
+            ]
+        )
+        assert _infer_model_id(wf, {}) == "same-123"
+
+    def test_multiple_distinct_candidates_logs_warning_and_returns_none(self, caplog):
+        wf = _wf(
+            steps=[
+                {
+                    "id": "s1",
+                    "server": "fake_server",
+                    "tool": "echo",
+                    "args": {
+                        "first": {"model_id": "a-model"},
+                        "second": {"model_id": "b-model"},
+                    },
+                }
+            ],
+            workflow_id="ambiguous_model_id",
+        )
+
+        with caplog.at_level(logging.WARNING):
+            inferred = _infer_model_id(wf, {})
+
+        assert inferred is None
+        assert "Ambiguous model_id inference" in caplog.text
+        assert "a-model" in caplog.text
+        assert "b-model" in caplog.text
+
 
 class TestOnFailure:
     def test_fail_policy_aborts(self, fake_pool):
@@ -303,6 +344,53 @@ class TestRunstoreLifecycle:
             execute_workflow(wf, {"greeting": "x"}, fake_pool, runstore_db=str(runstore_db))
         )
         assert execution.run_id.startswith("wf_")
+
+    def test_step_artifact_path_confinement(self, runstore_db, tmp_path):
+        from conftest import FakePool
+
+        allowed_path = tmp_path / "allowed.sqlite"
+        allowed_path.write_text("ok", encoding="utf-8")
+
+        pool = FakePool()
+        pool.add_server(
+            "fake_server",
+            {
+                "emit_paths": lambda: {
+                    "success": True,
+                    "db_path": str(allowed_path),
+                    "output_path": "/etc/hosts",
+                }
+            },
+        )
+        wf = _wf(
+            steps=[
+                {
+                    "id": "s1",
+                    "server": "fake_server",
+                    "tool": "emit_paths",
+                    "args": {},
+                    "on_failure": "fail",
+                }
+            ],
+            workflow_id="artifact_confine",
+        )
+
+        execution = run(
+            execute_workflow(
+                wf,
+                {"greeting": "x"},
+                pool,
+                runstore_db=str(runstore_db),
+                run_id="wf_confine00000001",
+            )
+        )
+        assert execution.status == "succeeded"
+
+        artifacts = list_artifacts("wf_confine00000001", runstore_db=str(runstore_db))
+        paths = {Path(a.artifact_path) for a in artifacts}
+        assert len(paths) == 2
+        assert allowed_path.resolve() in paths
+        assert Path("/etc/hosts") not in paths
 
 
 class TestOnStepHook:
