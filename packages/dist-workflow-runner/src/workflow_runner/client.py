@@ -22,6 +22,7 @@ Env inheritance is handled by the SDK (``get_default_environment() | env``), so
 
 from __future__ import annotations
 
+import sys
 from typing import Any
 
 import anyio
@@ -75,6 +76,8 @@ class _ClientHandle:
         this task so it can be torn down in :meth:`close`.
         """
         command = [self.spec.command, *self.spec.args]
+        if command[0] in {"python", "python3", "python3.10", "python3.11", "python3.12"}:
+            command[0] = sys.executable
         cm = connect_session(
             command,
             env=self.spec.env or None,

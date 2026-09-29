@@ -4,79 +4,134 @@
     "gdm": {
       "type": "local",
       "enabled": true,
-      "command": ["/tmp/gdmflow-venv/bin/python", "-m", "gdm.mcp.server"],
+      "command": [
+        "/Users/alatif/Documents/GitHub/gdm-ecosystem/dist-stack/dist-stack-ui/.venv/bin/python",
+        "-m",
+        "dist_stack_ui.mcp_entry",
+        "gdm"
+      ],
       "environment": {
-        "DIST_STACK_MODEL_REGISTRY_DB": "/home/aadillatif/.cache/dist-stack/registry.db",
-        "DIST_STACK_RUNSTORE_DB": "/home/aadillatif/.cache/dist-stack/runstore.db",
-        "DIST_STACK_KG_DB": "/home/aadillatif/.cache/dist-stack/kg.db",
-        "PYTHONPATH": "/home/aadillatif/Documents/GitHub/grid-data-models/src"
+        "DIST_STACK_MODEL_REGISTRY_DB": "/Users/alatif/.cache/dist-stack/registry.db",
+        "DIST_STACK_RUNSTORE_DB": "/Users/alatif/.cache/dist-stack/runstore.db",
+        "DIST_STACK_KG_DB": "/Users/alatif/.cache/dist-stack/kg.db",
+        "DIST_STACK_ECOSYSTEM_ROOT": "/Users/alatif/Documents/GitHub/gdm-ecosystem"
       }
     },
     "gdm-flow": {
       "type": "local",
       "enabled": true,
-      "command": ["/tmp/gdmflow-venv/bin/python", "-m", "gdm_flow.mcp.server"],
+      "command": [
+        "/Users/alatif/Documents/GitHub/gdm-ecosystem/dist-stack/dist-stack-ui/.venv/bin/python",
+        "-m",
+        "dist_stack_ui.mcp_entry",
+        "gdm_flow"
+      ],
       "environment": {
-        "DIST_STACK_MODEL_REGISTRY_DB": "/home/aadillatif/.cache/dist-stack/registry.db",
-        "DIST_STACK_RUNSTORE_DB": "/home/aadillatif/.cache/dist-stack/runstore.db",
-        "DIST_STACK_KG_DB": "/home/aadillatif/.cache/dist-stack/kg.db"
+        "DIST_STACK_MODEL_REGISTRY_DB": "/Users/alatif/.cache/dist-stack/registry.db",
+        "DIST_STACK_RUNSTORE_DB": "/Users/alatif/.cache/dist-stack/runstore.db",
+        "DIST_STACK_KG_DB": "/Users/alatif/.cache/dist-stack/kg.db",
+        "DIST_STACK_ECOSYSTEM_ROOT": "/Users/alatif/Documents/GitHub/gdm-ecosystem"
       }
     },
     "erad": {
       "type": "local",
       "enabled": true,
-      "command": ["/home/aadillatif/Documents/GitHub/erad/.venv/bin/python", "-m", "erad.mcp"],
+      "command": [
+        "/Users/alatif/Documents/GitHub/gdm-ecosystem/dist-stack/dist-stack-ui/.venv/bin/python",
+        "-m",
+        "dist_stack_ui.mcp_entry",
+        "erad"
+      ],
       "environment": {
-        "DIST_STACK_MODEL_REGISTRY_DB": "/home/aadillatif/.cache/dist-stack/registry.db",
-        "DIST_STACK_RUNSTORE_DB": "/home/aadillatif/.cache/dist-stack/runstore.db",
-        "DIST_STACK_KG_DB": "/home/aadillatif/.cache/dist-stack/kg.db"
+        "DIST_STACK_MODEL_REGISTRY_DB": "/Users/alatif/.cache/dist-stack/registry.db",
+        "DIST_STACK_RUNSTORE_DB": "/Users/alatif/.cache/dist-stack/runstore.db",
+        "DIST_STACK_KG_DB": "/Users/alatif/.cache/dist-stack/kg.db",
+        "DIST_STACK_ECOSYSTEM_ROOT": "/Users/alatif/Documents/GitHub/gdm-ecosystem"
       }
     },
     "ditto": {
       "type": "local",
       "enabled": true,
-      "command": ["/home/aadillatif/Documents/GitHub/ditto/.venv/bin/ditto_mcp"],
+      "command": [
+        "/Users/alatif/Documents/GitHub/gdm-ecosystem/dist-stack/dist-stack-ui/.venv/bin/python",
+        "-m",
+        "dist_stack_ui.mcp_entry",
+        "ditto"
+      ],
       "environment": {
-        "DIST_STACK_MODEL_REGISTRY_DB": "/home/aadillatif/.cache/dist-stack/registry.db",
-        "DIST_STACK_RUNSTORE_DB": "/home/aadillatif/.cache/dist-stack/runstore.db",
-        "DIST_STACK_KG_DB": "/home/aadillatif/.cache/dist-stack/kg.db"
+        "DIST_STACK_MODEL_REGISTRY_DB": "/Users/alatif/.cache/dist-stack/registry.db",
+        "DIST_STACK_RUNSTORE_DB": "/Users/alatif/.cache/dist-stack/runstore.db",
+        "DIST_STACK_KG_DB": "/Users/alatif/.cache/dist-stack/kg.db",
+        "DIST_STACK_ECOSYSTEM_ROOT": "/Users/alatif/Documents/GitHub/gdm-ecosystem"
       }
     },
     "shift": {
       "type": "local",
       "enabled": true,
-      "command": ["/tmp/opencode/shift-venv/bin/python", "-m", "shift.mcp_server.__main__"],
+      "command": [
+        "/Users/alatif/Documents/GitHub/gdm-ecosystem/dist-stack/dist-stack-ui/.venv/bin/python",
+        "-m",
+        "dist_stack_ui.mcp_entry",
+        "shift"
+      ],
       "environment": {
-        "DIST_STACK_MODEL_REGISTRY_DB": "/home/aadillatif/.cache/dist-stack/registry.db",
-        "DIST_STACK_RUNSTORE_DB": "/home/aadillatif/.cache/dist-stack/runstore.db",
-        "DIST_STACK_KG_DB": "/home/aadillatif/.cache/dist-stack/kg.db"
+        "DIST_STACK_MODEL_REGISTRY_DB": "/Users/alatif/.cache/dist-stack/registry.db",
+        "DIST_STACK_RUNSTORE_DB": "/Users/alatif/.cache/dist-stack/runstore.db",
+        "DIST_STACK_KG_DB": "/Users/alatif/.cache/dist-stack/kg.db",
+        "DIST_STACK_ECOSYSTEM_ROOT": "/Users/alatif/Documents/GitHub/gdm-ecosystem"
+      }
+    },
+    "opendss": {
+      "type": "local",
+      "enabled": true,
+      "command": [
+        "/Users/alatif/Documents/GitHub/gdm-ecosystem/dist-stack/dist-stack-ui/.venv/bin/python",
+        "-m",
+        "dist_stack_ui.mcp_entry",
+        "opendss"
+      ],
+      "environment": {
+        "DIST_STACK_MODEL_REGISTRY_DB": "/Users/alatif/.cache/dist-stack/registry.db",
+        "DIST_STACK_RUNSTORE_DB": "/Users/alatif/.cache/dist-stack/runstore.db",
+        "DIST_STACK_KG_DB": "/Users/alatif/.cache/dist-stack/kg.db",
+        "DIST_STACK_ECOSYSTEM_ROOT": "/Users/alatif/Documents/GitHub/gdm-ecosystem"
       }
     },
     "dist-workflow-runner": {
       "type": "local",
       "enabled": true,
-      "command": ["/home/aadillatif/Documents/GitHub/dist-stack/.venv/bin/python", "-m", "workflow_runner.__main__"],
+      "command": [
+        "/Users/alatif/Documents/GitHub/gdm-ecosystem/dist-stack/dist-stack-ui/.venv/bin/python",
+        "-m",
+        "workflow_runner.__main__"
+      ],
       "environment": {
-        "DIST_STACK_MODEL_REGISTRY_DB": "/home/aadillatif/.cache/dist-stack/registry.db",
-        "DIST_STACK_RUNSTORE_DB": "/home/aadillatif/.cache/dist-stack/runstore.db",
-        "DIST_STACK_KG_DB": "/home/aadillatif/.cache/dist-stack/kg.db",
-        "WORKFLOW_RUNNER_CONFIG": "/home/aadillatif/Documents/GitHub/dist-stack/servers.yaml"
+        "DIST_STACK_MODEL_REGISTRY_DB": "/Users/alatif/.cache/dist-stack/registry.db",
+        "DIST_STACK_RUNSTORE_DB": "/Users/alatif/.cache/dist-stack/runstore.db",
+        "DIST_STACK_KG_DB": "/Users/alatif/.cache/dist-stack/kg.db",
+        "WORKFLOW_RUNNER_CONFIG": "/Users/alatif/Documents/GitHub/gdm-ecosystem/dist-stack/dist-stack-ui/servers.yaml",
+        "DIST_STACK_ECOSYSTEM_ROOT": "/Users/alatif/Documents/GitHub/gdm-ecosystem"
       }
     },
     "dist-kg": {
       "type": "local",
       "enabled": true,
-      "command": ["/home/aadillatif/Documents/GitHub/dist-stack/.venv/bin/python", "-m", "kg_server.__main__"],
+      "command": [
+        "/Users/alatif/Documents/GitHub/gdm-ecosystem/dist-stack/dist-stack-ui/.venv/bin/python",
+        "-m",
+        "kg_server.__main__"
+      ],
       "environment": {
-        "DIST_STACK_MODEL_REGISTRY_DB": "/home/aadillatif/.cache/dist-stack/registry.db",
-        "DIST_STACK_RUNSTORE_DB": "/home/aadillatif/.cache/dist-stack/runstore.db",
-        "DIST_STACK_KG_DB": "/home/aadillatif/.cache/dist-stack/kg.db"
+        "DIST_STACK_MODEL_REGISTRY_DB": "/Users/alatif/.cache/dist-stack/registry.db",
+        "DIST_STACK_RUNSTORE_DB": "/Users/alatif/.cache/dist-stack/runstore.db",
+        "DIST_STACK_KG_DB": "/Users/alatif/.cache/dist-stack/kg.db",
+        "DIST_STACK_ECOSYSTEM_ROOT": "/Users/alatif/Documents/GitHub/gdm-ecosystem"
       }
     },
     "sqlite": {
       "type": "local",
       "enabled": true,
-      "command": ["npx", "-y", "mcp-server-sqlite", "--db", "/home/aadillatif/.cache/dist-stack/runstore.db"]
+      "command": ["npx", "-y", "mcp-server-sqlite", "--db", "/Users/alatif/.cache/dist-stack/runstore.db"]
     },
     "python": {
       "type": "local",
@@ -90,9 +145,9 @@
         "npx",
         "-y",
         "@modelcontextprotocol/server-filesystem",
-        "/home/aadillatif/.cache/dist-stack",
-        "/home/aadillatif/.cache/erad/hazard_models",
-        "/home/aadillatif/.cache/erad/distribution_models"
+        "/Users/alatif/.cache/dist-stack",
+        "/Users/alatif/.cache/erad/hazard_models",
+        "/Users/alatif/.cache/erad/distribution_models"
       ]
     }
   }
